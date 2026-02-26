@@ -2,11 +2,41 @@
 import { GoogleGenAI, Chat } from "@google/genai";
 import { SearchParams, AiResponse } from '../types';
 import { FIRE_CODE_CONTEXT } from '../constants';
+import { storageService } from './storageService';
 
 // Initialize the Gemini API client directly using process.env.API_KEY as per guidelines
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
+const getKnowledgeContext = (): string => {
+  const entries = storageService.getKnowledge();
+  if (entries.length === 0) return "";
+
+  return `
+IMPORTANT - USER TRAINING DATA / KNOWLEDGE BASE:
+The following are specific provisions, interpretations, or corrections added by the admin. 
+YOU MUST PRIORITIZE THIS INFORMATION over general knowledge if it conflicts or adds specificity.
+Use these citations where applicable.
+
+${entries.map(e => `[${e.category.toUpperCase()}] ${e.title}: ${e.content}`).join('\n\n')}
+`;
+};
+
+export const generateContent = async (prompt: string): Promise<string> => {
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-pro-preview',
+      contents: prompt,
+    });
+    return response.text || "No response generated.";
+  } catch (error) {
+    console.error("Gemini API Error:", error);
+    throw error;
+  }
+};
+
 export const generateFireSafetyReport = async (params: SearchParams): Promise<AiResponse> => {
+  const knowledgeContext = getKnowledgeContext();
+  
   const systemInstruction = `
 Role:
 You are Super FC AI, an intelligent Fire Code reference and inspection assistant for the Bureau of Fire Protection (BFP).
@@ -16,6 +46,8 @@ Analyze the provided Fire Code context (based on RA 9514 and its RIRR) and retur
 
 Context (Your Memory Base):
 ${FIRE_CODE_CONTEXT}
+
+${knowledgeContext}
 
 Response Behavior:
 1.  **Establishment Overview**: Classify the occupancy based on the input.
@@ -60,6 +92,8 @@ Generate a Fire Safety Inspection Report for:
 };
 
 export const createChatSession = (reportContext: string) => {
+  const knowledgeContext = getKnowledgeContext();
+  
   const systemInstruction = `
 You are Super FC AI, a helpful Fire Safety assistant. 
 The user is viewing a generated inspection report based on RA 9514. 
@@ -71,6 +105,8 @@ ${reportContext}
 
 ORIGINAL REFERENCE MATERIAL:
 ${FIRE_CODE_CONTEXT}
+
+${knowledgeContext}
 `;
 
   // Create chat session with appropriate model for conversational reasoning
@@ -83,6 +119,8 @@ ${FIRE_CODE_CONTEXT}
 };
 
 export const createGeneralAssistantSession = () => {
+  const knowledgeContext = getKnowledgeContext();
+
   const systemInstruction = `
 You are Super FC AI, the ultimate expert on Republic Act No. 9514 (Fire Code of the Philippines) and its 2019 Revised Implementing Rules and Regulations (RIRR).
 
@@ -90,6 +128,8 @@ Your goal is to provide highly detailed, authoritative, and structured responses
 
 Source Knowledge Base:
 ${FIRE_CODE_CONTEXT}
+
+${knowledgeContext}
 
 STRICT RESPONSE STRUCTURE:
 For every inquiry, you must organize your response using these EXACT headers. Use bullet points for detailed sections to make them easier to read.
@@ -190,6 +230,53 @@ Generate the detailed NTC list.
     return response.text || "Unable to generate defect list.";
   } catch (error) {
     console.error("Gemini API Error (NTC):", error);
+    throw error;
+  }
+};
+
+export const analyzeTrainingDocument = async (input: string | { data: string, mimeType: string }): Promise<any[]> => {
+  const systemInstruction = `
+You are an expert Fire Code Data Analyst.
+Your task is to extract structured knowledge from the provided document.
+
+Return a JSON ARRAY of objects. Each object must have:
+- title: string (The section number or topic title)
+- content: string (The detailed provision, rule, or explanation)
+- category: one of ["provision", "interpretation", "correction"]
+
+Example Output:
+[
+  {
+    "title": "Section 10.2.5.4",
+    "content": "Stairways shall be...",
+    "category": "provision"
+  }
+]
+
+Ensure the content is accurate and preserves the original meaning.
+`;
+
+  try {
+    let contentPart;
+    if (typeof input === 'string') {
+      contentPart = { text: input };
+    } else {
+      contentPart = { inlineData: { data: input.data, mimeType: input.mimeType } };
+    }
+
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash-preview-12-2025',
+      contents: { role: 'user', parts: [contentPart] },
+      config: {
+        systemInstruction: systemInstruction,
+        responseMimeType: "application/json"
+      },
+    });
+
+    const text = response.text || "[]";
+    return JSON.parse(text);
+  } catch (error) {
+    console.error("Analysis failed:", error);
     throw error;
   }
 };

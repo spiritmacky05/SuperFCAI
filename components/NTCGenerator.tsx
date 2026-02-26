@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { SearchParams } from '../types';
 import { generateNTC } from '../services/geminiService';
 import ReactMarkdown from 'react-markdown';
+import { AlertTriangle, Check, Copy, Loader2, FileWarning } from 'lucide-react';
 
 interface NTCGeneratorProps {
   params: SearchParams;
@@ -120,40 +121,44 @@ const NTCGenerator: React.FC<NTCGeneratorProps> = ({ params }) => {
   };
 
   return (
-    <div className="mt-8 bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden">
-      <div className="bg-red-900 text-white p-4 flex items-center gap-2">
-        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-        </svg>
-        <h3 className="font-bold text-lg">Generate NTC Details</h3>
+    <div className="glass-panel rounded-xl overflow-hidden border border-glass shadow-2xl mt-8">
+      <div className="bg-glass border-b border-glass p-4 flex items-center gap-3 relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-r from-red-900/20 to-transparent opacity-50"></div>
+        <div className="h-10 w-10 bg-red-900/20 border border-red-500/30 rounded-lg flex items-center justify-center shadow-[0_0_15px_rgba(239,68,68,0.2)] relative z-10">
+          <FileWarning className="w-6 h-6 text-red-500" />
+        </div>
+        <div className="relative z-10">
+          <h3 className="text-lg font-display text-white tracking-widest uppercase">NTC Generator</h3>
+          <p className="text-xs font-mono text-red-400 tracking-wider">VIOLATION REPORTING MODULE</p>
+        </div>
       </div>
 
       <div className="p-6">
-        <p className="text-sm text-slate-600 mb-6 bg-slate-50 p-3 rounded-lg border border-slate-200">
-          Select the observed violations from the checklist below to generate the Notice to Comply (NTC) details.
+        <p className="text-xs font-mono text-muted mb-6 bg-glass/30 p-4 rounded-lg border border-glass flex items-center gap-3">
+          <AlertTriangle className="w-4 h-4 text-tangerine flex-shrink-0" />
+          SELECT OBSERVED VIOLATIONS TO GENERATE NOTICE TO COMPLY DETAILS.
         </p>
 
         <div className="space-y-6 mb-8">
           {DEFECT_CATEGORIES.map((category, idx) => (
-            <div key={idx} className="border border-slate-200 rounded-lg overflow-hidden">
-              <div className="bg-slate-100 px-4 py-2 font-bold text-slate-800 border-b border-slate-200">
+            <div key={idx} className="border border-glass rounded-lg overflow-hidden bg-glass/10">
+              <div className="bg-glass/50 px-4 py-2 font-display text-xs text-silver uppercase tracking-wider border-b border-glass flex items-center gap-2">
+                <div className="h-1.5 w-1.5 rounded-full bg-cobalt shadow-[0_0_5px_#00f2ff]"></div>
                 {category.title}
               </div>
-              <div className="p-4 bg-white grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-3">
                 {category.items.map((item, i) => (
-                  <label key={i} className="flex items-start gap-3 cursor-pointer group p-1 hover:bg-slate-50 rounded transition-colors">
+                  <label key={i} className="flex items-start gap-3 cursor-pointer group p-2 hover:bg-white/5 rounded transition-colors border border-transparent hover:border-glass/30">
                     <div className="relative flex items-center mt-0.5">
                       <input 
                         type="checkbox" 
-                        className="peer h-5 w-5 cursor-pointer appearance-none rounded border border-slate-300 shadow-sm checked:border-red-600 checked:bg-red-600 focus:ring-2 focus:ring-red-500/20 bg-white"
+                        className="peer h-4 w-4 cursor-pointer appearance-none rounded border border-glass bg-obsidian checked:border-red-500 checked:bg-red-500/20 transition-all"
                         checked={selectedDefects.has(item)}
                         onChange={() => toggleDefect(item)}
                       />
-                      <svg className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-3.5 h-3.5 pointer-events-none opacity-0 peer-checked:opacity-100 text-white transition-opacity" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round">
-                        <polyline points="20 6 9 17 4 12"></polyline>
-                      </svg>
+                      <Check className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-3 h-3 pointer-events-none opacity-0 peer-checked:opacity-100 text-red-500 transition-opacity" />
                     </div>
-                    <span className={`text-sm select-none transition-colors ${selectedDefects.has(item) ? 'text-slate-900 font-medium' : 'text-slate-600 group-hover:text-slate-900'}`}>
+                    <span className={`text-xs font-mono select-none transition-colors ${selectedDefects.has(item) ? 'text-white' : 'text-muted group-hover:text-silver'}`}>
                       {item}
                     </span>
                   </label>
@@ -164,11 +169,11 @@ const NTCGenerator: React.FC<NTCGeneratorProps> = ({ params }) => {
         </div>
 
         <div className="mb-6">
-          <label className="block text-sm font-bold text-slate-700 mb-2">
+          <label className="block text-xs font-mono text-muted mb-2 uppercase tracking-wider">
             Other Observations (Optional)
           </label>
           <textarea
-            className="w-full p-4 border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent min-h-[80px] bg-white"
+            className="w-full p-4 glass-input rounded-lg font-mono text-sm focus:ring-1 focus:ring-red-500/50 min-h-[80px]"
             placeholder="Type any other defects not listed above..."
             value={otherDefects}
             onChange={(e) => setOtherDefects(e.target.value)}
@@ -176,8 +181,8 @@ const NTCGenerator: React.FC<NTCGeneratorProps> = ({ params }) => {
         </div>
 
         {error && (
-          <div className="bg-red-50 text-red-700 p-3 rounded-lg mb-4 text-sm flex items-center">
-            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+          <div className="bg-red-900/20 border border-red-500/30 text-red-400 p-3 rounded-lg mb-4 text-xs font-mono flex items-center shadow-[0_0_15px_rgba(239,68,68,0.1)]">
+            <AlertTriangle className="w-4 h-4 mr-2" />
             {error}
           </div>
         )}
@@ -185,15 +190,12 @@ const NTCGenerator: React.FC<NTCGeneratorProps> = ({ params }) => {
         <button
           onClick={handleGenerate}
           disabled={isLoading || (selectedDefects.size === 0 && !otherDefects.trim())}
-          className="w-full sm:w-auto bg-gradient-to-r from-red-700 to-red-800 text-white px-8 py-3 rounded-lg font-bold hover:from-red-800 hover:to-red-900 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md active:scale-95 flex items-center justify-center gap-2"
+          className="w-full sm:w-auto bg-red-600/20 hover:bg-red-600/40 text-red-400 border border-red-500/50 px-8 py-3 rounded-lg font-display text-xs uppercase tracking-widest disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-[0_0_15px_rgba(220,38,38,0.2)] hover:shadow-[0_0_25px_rgba(220,38,38,0.4)] active:scale-[0.98] flex items-center justify-center gap-2"
         >
           {isLoading ? (
             <>
-              <svg className="animate-spin h-5 w-5 text-white" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-              Generating NTC Details...
+              <Loader2 className="w-4 h-4 animate-spin" />
+              PROCESSING VIOLATIONS...
             </>
           ) : (
             'Match Selected Defects to Fire Code'
@@ -201,20 +203,30 @@ const NTCGenerator: React.FC<NTCGeneratorProps> = ({ params }) => {
         </button>
 
         {ntcContent && (
-          <div className="mt-8 border-t-2 border-slate-100 pt-6 animate-fade-in-up">
-            <h4 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
-              <span className="text-red-600">⚠</span> Defects, Legal Basis & Explanation
+          <div className="mt-8 border-t border-glass pt-6 animate-fade-in">
+            <h4 className="text-sm font-display text-white mb-4 flex items-center gap-2 uppercase tracking-wide">
+              <span className="text-red-500">⚠</span> Defects, Legal Basis & Explanation
             </h4>
-            <div className="bg-slate-50 p-6 rounded-lg border border-slate-200 prose prose-slate max-w-none prose-headings:text-red-600 text-sm shadow-inner">
-              <ReactMarkdown>{ntcContent}</ReactMarkdown>
+            <div className="glass-panel p-6 rounded-lg border border-glass font-mono text-sm text-silver leading-relaxed shadow-inner bg-obsidian/30">
+              <ReactMarkdown 
+                components={{
+                  h3: ({node, ...props}) => <h3 className="text-red-400 font-bold mt-4 mb-2 uppercase tracking-wider text-xs" {...props} />,
+                  h4: ({node, ...props}) => <h4 className="text-white font-bold mt-2 mb-1" {...props} />,
+                  p: ({node, ...props}) => <p className="mb-4 last:mb-0 text-muted" {...props} />,
+                  strong: ({node, ...props}) => <strong className="text-white" {...props} />,
+                  hr: ({node, ...props}) => <hr className="border-glass my-6" {...props} />,
+                }}
+              >
+                {ntcContent}
+              </ReactMarkdown>
             </div>
             <div className="mt-4 flex justify-end">
               <button 
                 onClick={() => {navigator.clipboard.writeText(ntcContent); alert('Copied to clipboard!');}}
-                className="flex items-center gap-2 text-sm text-blue-700 font-bold hover:text-blue-900 hover:bg-blue-50 px-4 py-2 rounded-lg transition-colors"
+                className="flex items-center gap-2 text-xs font-mono text-cobalt hover:text-white hover:bg-cobalt/20 px-4 py-2 rounded-lg transition-colors border border-cobalt/30 hover:border-cobalt/50"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m2 4h6m-6 4h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                Copy to Clipboard
+                <Copy className="w-4 h-4" />
+                COPY TO CLIPBOARD
               </button>
             </div>
           </div>

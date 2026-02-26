@@ -28,9 +28,12 @@ export interface AiResponse {
   markdown: string;
 }
 
+export type UserRole = 'free' | 'pro' | 'admin';
+
 export interface User {
   email: string;
   name: string;
+  role: UserRole;
   password?: string; // Only for local storage logic, normally hashed
 }
 
@@ -39,6 +42,14 @@ export interface SavedReport {
   timestamp: number;
   params: SearchParams;
   result: string;
+}
+
+export interface KnowledgeEntry {
+  id: string;
+  title: string;
+  content: string;
+  category: 'provision' | 'interpretation' | 'correction';
+  timestamp: number;
 }
 
 export interface ChatMessage {

@@ -1,7 +1,7 @@
-
 import React from 'react';
 import { EstablishmentType, SearchParams } from '../types';
 import { ESTABLISHMENT_TYPES } from '../constants';
+import { Search, Building2, Ruler, Layers } from 'lucide-react';
 
 interface SearchFormProps {
   params: SearchParams;
@@ -11,88 +11,103 @@ interface SearchFormProps {
 }
 
 const SearchForm: React.FC<SearchFormProps> = ({ params, setParams, onSubmit, isLoading }) => {
-  const handleChange = (e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setParams(prev => ({ ...prev, [name]: value }));
   };
 
-  const isFormValid = params.establishmentType && params.area && params.stories;
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!params.establishmentType || !params.area || !params.stories) return;
+    onSubmit();
+  };
 
   return (
-    <div className="bg-white p-6 rounded-xl shadow-lg border border-slate-200">
-      <h2 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
-        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
-        </svg>
-        Inspection Details
-      </h2>
-      <div className="space-y-4">
+    <form onSubmit={handleSubmit} className="glass-panel p-6 rounded-xl shadow-2xl relative overflow-hidden">
+      <div className="absolute top-0 right-0 p-2 opacity-20">
+        <div className="w-20 h-20 border border-cobalt rounded-full border-dashed animate-spin-slow"></div>
+      </div>
+
+      <div className="space-y-6 relative z-10">
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">Type of Establishment</label>
-          <select
-            name="establishmentType"
-            value={params.establishmentType}
-            onChange={handleChange}
-            className="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors bg-white"
-            disabled={isLoading}
-          >
-            <option value="" disabled>Select Type</option>
-            {ESTABLISHMENT_TYPES.map((type) => (
-              <option key={type} value={type}>{type}</option>
-            ))}
-          </select>
+          <label className="block text-xs font-mono text-cobalt mb-2 uppercase tracking-widest">Establishment Type</label>
+          <div className="relative group">
+            <Building2 className="absolute left-3 top-3 h-5 w-5 text-muted group-focus-within:text-cobalt transition-colors" />
+            <select
+              name="establishmentType"
+              value={params.establishmentType}
+              onChange={handleChange}
+              className="w-full pl-10 pr-4 py-3 rounded-lg glass-input focus:ring-1 focus:ring-cobalt/50 font-mono text-sm appearance-none cursor-pointer"
+              required
+            >
+              <option value="" className="bg-obsidian text-muted">SELECT CLASSIFICATION</option>
+              {ESTABLISHMENT_TYPES.map((type) => (
+                <option key={type} value={type} className="bg-obsidian text-silver">{type}</option>
+              ))}
+            </select>
+            <div className="absolute right-3 top-3 pointer-events-none text-muted">▼</div>
+          </div>
         </div>
 
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Floor Area (SQM)</label>
-            <input
-              type="number"
-              name="area"
-              value={params.area}
-              onChange={handleChange}
-              placeholder="e.g. 150"
-              className="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors bg-white"
-              disabled={isLoading}
-            />
+            <label className="block text-xs font-mono text-cobalt mb-2 uppercase tracking-widest">Area (SQM)</label>
+            <div className="relative group">
+              <Ruler className="absolute left-3 top-3 h-5 w-5 text-muted group-focus-within:text-cobalt transition-colors" />
+              <input
+                type="number"
+                name="area"
+                value={params.area}
+                onChange={handleChange}
+                placeholder="0.00"
+                className="w-full pl-10 pr-4 py-3 rounded-lg glass-input focus:ring-1 focus:ring-cobalt/50 font-mono text-sm placeholder-muted/30"
+                required
+                min="0"
+              />
+            </div>
           </div>
+
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">No. of Story</label>
-            <input
-              type="number"
-              name="stories"
-              value={params.stories}
-              onChange={handleChange}
-              placeholder="e.g. 2"
-              className="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors bg-white"
-              disabled={isLoading}
-            />
+            <label className="block text-xs font-mono text-cobalt mb-2 uppercase tracking-widest">Stories</label>
+            <div className="relative group">
+              <Layers className="absolute left-3 top-3 h-5 w-5 text-muted group-focus-within:text-cobalt transition-colors" />
+              <input
+                type="number"
+                name="stories"
+                value={params.stories}
+                onChange={handleChange}
+                placeholder="0"
+                className="w-full pl-10 pr-4 py-3 rounded-lg glass-input focus:ring-1 focus:ring-cobalt/50 font-mono text-sm placeholder-muted/30"
+                required
+                min="1"
+              />
+            </div>
           </div>
         </div>
 
         <button
-          onClick={onSubmit}
-          disabled={!isFormValid || isLoading}
-          className={`w-full py-3 rounded-lg font-semibold text-white shadow-md transition-all 
-            ${!isFormValid || isLoading 
-              ? 'bg-slate-400 cursor-not-allowed' 
-              : 'bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 active:scale-[0.98]'
-            }`}
+          type="submit"
+          disabled={isLoading}
+          className={`w-full py-4 rounded-lg font-display text-sm tracking-widest uppercase transition-all flex items-center justify-center gap-2 relative overflow-hidden ${
+            isLoading 
+              ? 'bg-glass cursor-not-allowed text-muted border border-glass' 
+              : 'cyber-button-primary hover:scale-[1.02] active:scale-[0.98]'
+          }`}
         >
           {isLoading ? (
-            <span className="flex items-center justify-center gap-2">
-              <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-              Analyzing Fire Code...
-            </span>
+            <>
+              <div className="w-4 h-4 border-2 border-cobalt border-t-transparent rounded-full animate-spin"></div>
+              <span>PROCESSING DATA...</span>
+            </>
           ) : (
-            'Generate Inspection Requirements'
+            <>
+              <Search className="w-4 h-4" />
+              <span>INITIATE ANALYSIS</span>
+            </>
           )}
         </button>
       </div>
-    </div>
+    </form>
   );
 };
 

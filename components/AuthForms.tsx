@@ -40,7 +40,7 @@ const AuthForms: React.FC<AuthFormsProps> = ({ onLogin }) => {
       setError('All fields are required');
       return;
     }
-    const success = storageService.register({ name, email, password });
+    const success = storageService.register({ name, email, password, role: 'free' });
     if (success) {
       setSuccess('Account created! Please log in.');
       setTimeout(() => {
