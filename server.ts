@@ -82,18 +82,22 @@ async function createServer() {
 
   app.use(express.json());
 
-  // API routes will go here
+  // Health Check
+  app.get('/api/health', (req, res) => {
+    res.json({ status: 'ok', env: process.env.NODE_ENV });
+  });
 
   // PayMongo Checkout Session
   app.post('/api/paymongo/create-checkout', async (req, res) => {
     try {
       const secretKey = process.env.PAYMONGO_SECRET_KEY;
       if (!secretKey) {
-        return res.status(500).json({ error: 'PayMongo credentials not configured' });
+        console.error('PAYMONGO_SECRET_KEY is missing');
+        return res.status(500).json({ error: 'Payment configuration error' });
       }
 
       const encodedKey = Buffer.from(secretKey).toString('base64');
-      const origin = req.headers.origin;
+      const origin = req.headers.origin || 'https://www.superfcai.tech';
 
       const response = await fetch('https://api.paymongo.com/v1/checkout_sessions', {
         method: 'POST',
@@ -143,19 +147,30 @@ async function createServer() {
 
 
   // Initialize the Vertex AI client
-  const vertex_ai = new VertexAI({
-    project: process.env.PROJECT_ID,
-    location: process.env.LOCATION,
-  });
-
-  const model = 'gemini-1.5-pro-preview-0409';
-
-  const generativeModel = vertex_ai.getGenerativeModel({
-      model: model,
-  });
+  let generativeModel: any = null;
+  try {
+    if (process.env.PROJECT_ID && process.env.LOCATION) {
+      const vertex_ai = new VertexAI({
+        project: process.env.PROJECT_ID,
+        location: process.env.LOCATION,
+      });
+      const model = 'gemini-1.5-pro-preview-0409';
+      generativeModel = vertex_ai.getGenerativeModel({
+        model: model,
+      });
+      console.log('Vertex AI initialized successfully');
+    } else {
+      console.warn('Vertex AI credentials (PROJECT_ID, LOCATION) missing. AI features will be disabled.');
+    }
+  } catch (error) {
+    console.error('Failed to initialize Vertex AI:', error);
+  }
 
   app.post('/api/generateContent', async (req, res) => {
     try {
+      if (!generativeModel) {
+        return res.status(503).json({ error: 'AI service not configured' });
+      }
       const { prompt } = req.body;
       const resp = await generativeModel.generateContent(prompt);
       const response = await resp.response;
@@ -168,6 +183,9 @@ async function createServer() {
 
   app.post('/api/generateFireSafetyReport', async (req, res) => {
       try {
+          if (!generativeModel) {
+            return res.status(503).json({ error: 'AI service not configured' });
+          }
           const { params } = req.body;
           const getKnowledgeContext = () => ''; // Simplified for now
           const knowledgeContext = getKnowledgeContext();
@@ -227,6 +245,9 @@ Generate a Fire Safety Inspection Report for:
 
   app.post('/api/createChatSession', async (req, res) => {
       try {
+          if (!generativeModel) {
+            return res.status(503).json({ error: 'AI service not configured' });
+          }
           const { reportContext } = req.body;
           const getKnowledgeContext = () => ''; // Simplified for now
           const knowledgeContext = getKnowledgeContext();
@@ -265,6 +286,9 @@ ${knowledgeContext}
 
   app.post('/api/sendMessage', async (req, res) => {
       try {
+          if (!generativeModel) {
+            return res.status(503).json({ error: 'AI service not configured' });
+          }
           const { message, history } = req.body;
           const chat = generativeModel.startChat({ history });
           const result = await chat.sendMessage(message);
@@ -295,6 +319,9 @@ ${knowledgeContext}
   const PORT = process.env.PORT || 3000;
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`Server is running on http://localhost:${PORT}`);
+    console.log(`Environment: ${process.env.NODE_ENV}`);
+    console.log(`PayMongo Key Configured: ${!!process.env.PAYMONGO_SECRET_KEY}`);
+    console.log(`PayMongo Webhook Secret Configured: ${!!process.env.PAYMONGO_WEBHOOK_SECRET}`);
   });
 }
 
