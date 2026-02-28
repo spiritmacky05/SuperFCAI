@@ -120,7 +120,7 @@ const ChatBox: React.FC<ChatBoxProps> = ({ reportContext }) => {
               {msg.role === 'user' ? <User className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
             </div>
             
-            <div className={`max-w-[80%] rounded-xl p-4 text-sm font-mono leading-relaxed border ${
+            <div className={`max-w-[80%] rounded-xl p-4 text-sm font-sans leading-relaxed border ${
               msg.role === 'user'
                 ? 'bg-tangerine/5 border-tangerine/20 text-silver/90 rounded-tr-none'
                 : 'bg-glass border-glass text-silver/90 rounded-tl-none'

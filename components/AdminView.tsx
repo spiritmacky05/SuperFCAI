@@ -121,7 +121,7 @@ const AdminView: React.FC = () => {
           <div className="flex bg-obsidian/50 p-1 rounded-lg border border-glass">
             <button
               onClick={() => setActiveTab('dashboard')}
-              className={`px-4 py-2 rounded-md text-xs font-mono uppercase tracking-wider transition-all ${
+              className={`px-4 py-2 rounded-md text-xs font-display font-bold uppercase tracking-wider transition-all ${
                 activeTab === 'dashboard' 
                   ? 'bg-cobalt/20 text-cobalt shadow-[0_0_10px_rgba(0,242,255,0.1)]' 
                   : 'text-muted hover:text-white'
@@ -131,7 +131,7 @@ const AdminView: React.FC = () => {
             </button>
             <button
               onClick={() => setActiveTab('training')}
-              className={`px-4 py-2 rounded-md text-xs font-mono uppercase tracking-wider transition-all ${
+              className={`px-4 py-2 rounded-md text-xs font-display font-bold uppercase tracking-wider transition-all ${
                 activeTab === 'training' 
                   ? 'bg-cobalt/20 text-cobalt shadow-[0_0_10px_rgba(0,242,255,0.1)]' 
                   : 'text-muted hover:text-white'
@@ -144,7 +144,7 @@ const AdminView: React.FC = () => {
             </button>
             <button
               onClick={() => setActiveTab('users')}
-              className={`px-4 py-2 rounded-md text-xs font-mono uppercase tracking-wider transition-all ${
+              className={`px-4 py-2 rounded-md text-xs font-display font-bold uppercase tracking-wider transition-all ${
                 activeTab === 'users' 
                   ? 'bg-cobalt/20 text-cobalt shadow-[0_0_10px_rgba(0,242,255,0.1)]' 
                   : 'text-muted hover:text-white'
@@ -178,67 +178,69 @@ const AdminView: React.FC = () => {
             </div>
           ) : activeTab === 'users' ? (
             <div className="glass-panel overflow-hidden rounded-xl border border-glass">
-              <table className="w-full text-left border-collapse">
-                <thead className="bg-glass text-cobalt uppercase text-xs tracking-wider font-display">
-                  <tr>
-                    <th className="p-4 border-b border-glass">Identity Name</th>
-                    <th className="p-4 border-b border-glass">Access ID (Email)</th>
-                    <th className="p-4 border-b border-glass">Clearance Level</th>
-                    <th className="p-4 border-b border-glass text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-glass">
-                  {users.map((user) => (
-                    <tr key={user.email} className="hover:bg-white/5 transition-colors">
-                      <td className="p-4 text-silver font-mono text-sm">{user.name}</td>
-                      <td className="p-4 text-muted font-mono text-xs">{user.email}</td>
-                      <td className="p-4">
-                        {editingUser === user.email ? (
-                          <select
-                            value={user.role}
-                            onChange={(e) => handleUpdateRole(user.email, e.target.value as UserRole)}
-                            className="bg-obsidian border border-glass rounded px-2 py-1 text-xs font-mono text-white focus:border-cobalt outline-none"
-                          >
-                            <option value="free">FREE</option>
-                            <option value="pro">PRO</option>
-                            <option value="admin">ADMIN</option>
-                          </select>
-                        ) : (
-                          <span className={`px-2 py-1 rounded text-[10px] font-mono uppercase tracking-wider border ${
-                            user.role === 'admin' 
-                              ? 'bg-purple-900/20 text-purple-400 border-purple-500/30' 
-                              : user.role === 'pro' 
-                                ? 'bg-cobalt/10 text-cobalt border-cobalt/30' 
-                                : 'bg-glass text-muted border-glass'
-                          }`}>
-                            {user.role}
-                          </span>
-                        )}
-                      </td>
-                      <td className="p-4 text-right">
-                        {editingUser === user.email ? (
-                          <div className="flex items-center justify-end gap-2">
-                            <button 
-                              onClick={() => setEditingUser(null)}
-                              className="p-1.5 bg-red-900/20 text-red-400 rounded hover:bg-red-900/40 border border-red-500/30"
-                            >
-                              <X className="w-4 h-4" />
-                            </button>
-                          </div>
-                        ) : (
-                          <button 
-                            onClick={() => setEditingUser(user.email)}
-                            className="p-1.5 text-muted hover:text-white hover:bg-white/10 rounded transition-colors"
-                            title="Edit Role"
-                          >
-                            <Edit2 className="w-4 h-4" />
-                          </button>
-                        )}
-                      </td>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse min-w-[600px]">
+                  <thead className="bg-glass text-cobalt uppercase text-xs tracking-wider font-display">
+                    <tr>
+                      <th className="p-4 border-b border-glass">Identity Name</th>
+                      <th className="p-4 border-b border-glass">Access ID (Email)</th>
+                      <th className="p-4 border-b border-glass">Clearance Level</th>
+                      <th className="p-4 border-b border-glass text-right">Actions</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-glass">
+                    {users.map((user) => (
+                      <tr key={user.email} className="hover:bg-white/5 transition-colors">
+                        <td className="p-4 text-silver font-mono text-sm">{user.name}</td>
+                        <td className="p-4 text-muted font-mono text-xs">{user.email}</td>
+                        <td className="p-4">
+                          {editingUser === user.email ? (
+                            <select
+                              value={user.role}
+                              onChange={(e) => handleUpdateRole(user.email, e.target.value as UserRole)}
+                              className="bg-obsidian border border-glass rounded px-2 py-1 text-xs font-mono text-white focus:border-cobalt outline-none"
+                            >
+                              <option value="free">FREE</option>
+                              <option value="pro">PRO</option>
+                              <option value="admin">ADMIN</option>
+                            </select>
+                          ) : (
+                            <span className={`px-2 py-1 rounded text-[10px] font-mono uppercase tracking-wider border ${
+                              user.role === 'admin' 
+                                ? 'bg-purple-900/20 text-purple-400 border-purple-500/30' 
+                                : user.role === 'pro' 
+                                  ? 'bg-cobalt/10 text-cobalt border-cobalt/30' 
+                                  : 'bg-glass text-muted border-glass'
+                            }`}>
+                              {user.role}
+                            </span>
+                          )}
+                        </td>
+                        <td className="p-4 text-right">
+                          {editingUser === user.email ? (
+                            <div className="flex items-center justify-end gap-2">
+                              <button 
+                                onClick={() => setEditingUser(null)}
+                                className="p-1.5 bg-red-900/20 text-red-400 rounded hover:bg-red-900/40 border border-red-500/30"
+                              >
+                                <X className="w-4 h-4" />
+                              </button>
+                            </div>
+                          ) : (
+                            <button 
+                              onClick={() => setEditingUser(user.email)}
+                              className="p-1.5 text-muted hover:text-white hover:bg-white/10 rounded transition-colors"
+                              title="Edit Role"
+                            >
+                              <Edit2 className="w-4 h-4" />
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -348,7 +350,7 @@ const AdminView: React.FC = () => {
                         <div key={entry.id} className="p-4 bg-glass/30 rounded-lg border border-glass hover:border-cobalt/30 transition-colors group">
                           <div className="flex justify-between items-start mb-2">
                             <div>
-                              <h4 className="font-bold text-silver font-mono text-sm">{entry.title}</h4>
+                              <h4 className="font-bold text-silver font-display text-sm">{entry.title}</h4>
                               <span className={`text-[9px] uppercase tracking-wider px-2 py-0.5 rounded-full font-mono mt-1 inline-block border ${
                                 entry.category === 'provision' ? 'bg-cobalt/10 text-cobalt border-cobalt/20' :
                                 entry.category === 'interpretation' ? 'bg-purple-500/10 text-purple-400 border-purple-500/20' :
@@ -365,7 +367,7 @@ const AdminView: React.FC = () => {
                               <Trash2 className="w-4 h-4" />
                             </button>
                           </div>
-                          <p className="text-xs text-silver/70 leading-relaxed whitespace-pre-wrap font-mono">{entry.content}</p>
+                          <p className="text-xs text-silver/70 leading-relaxed whitespace-pre-wrap font-sans">{entry.content}</p>
                           <p className="text-[10px] text-muted/50 mt-3 font-mono uppercase">Timestamp: {new Date(entry.timestamp).toLocaleDateString()}</p>
                         </div>
                       ))}

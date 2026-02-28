@@ -24,7 +24,7 @@ const ResultDisplay: React.FC<ResultDisplayProps> = ({ content }) => {
         </div>
       </div>
       
-      <div className="p-6 md:p-8 font-mono text-sm leading-relaxed text-silver/90">
+      <div className="p-6 md:p-8 font-sans text-sm leading-relaxed text-silver/90">
         <ReactMarkdown
           components={{
             h1: ({node, ...props}) => <h1 className="text-xl font-display text-cobalt mb-6 mt-2 border-b border-cobalt/30 pb-2 uppercase tracking-wider" {...props} />,

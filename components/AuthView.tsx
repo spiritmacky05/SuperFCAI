@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { User } from '../types';
+import Logo from './Logo';
 import { storageService } from '../services/storageService';
 import { Lock, Mail, User as UserIcon, LogIn, UserPlus, Eye, EyeOff } from 'lucide-react';
-import Logo from './Logo';
 
 interface AuthViewProps {
   onLogin: (user: User) => void;
@@ -53,7 +53,7 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin }) => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-obsidian p-4 relative overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center bg-obsidian p-4 relative overflow-hidden google-auto-ads-ignore">
       {/* Background Elements */}
       <div className="absolute top-[-20%] left-[-20%] w-[60%] h-[60%] bg-cobalt/5 rounded-full blur-[120px] pointer-events-none"></div>
       <div className="absolute bottom-[-20%] right-[-20%] w-[60%] h-[60%] bg-tangerine/5 rounded-full blur-[120px] pointer-events-none"></div>
@@ -61,7 +61,9 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin }) => {
 
       <div className="glass-panel p-8 rounded-2xl w-full max-w-md relative z-10 border border-glass shadow-[0_0_40px_rgba(0,0,0,0.5)]">
         <div className="text-center mb-8">
-          <Logo size="xl" className="mx-auto mb-4" />
+          <div className="flex justify-center mb-4">
+            <Logo size="xl" />
+          </div>
           <h1 className="text-2xl font-display text-white tracking-widest mb-1">SUPER FC AI</h1>
           <p className="text-cobalt text-xs font-mono tracking-[0.2em] uppercase">Secure Access Terminal</p>
         </div>

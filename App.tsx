@@ -4,22 +4,26 @@ import SearchForm from './components/SearchForm';
 import ResultDisplay from './components/ResultDisplay';
 import HistoryView from './components/HistoryView';
 import ChatBox from './components/ChatBox';
+import Logo from './components/Logo';
 import NTCGenerator from './components/NTCGenerator';
 import AssistantModal from './components/AssistantModal';
 import AdminView from './components/AdminView';
 import DrawerNavigation from './components/DrawerNavigation';
-import BottomNavigation from './components/BottomNavigation';
+import AccountView from './components/AccountView';
 import AuthView from './components/AuthView';
+import AdBanner from './components/AdBanner';
 import { SearchParams, User, SavedReport } from './types';
 import { generateFireSafetyReport } from './services/geminiService';
 import { storageService } from './services/storageService';
+import { Menu, X, Search, History, Shield, User as UserIcon, LogOut } from 'lucide-react';
 
-type View = 'main' | 'history' | 'admin';
+type View = 'main' | 'history' | 'admin' | 'account';
 
 const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [view, setView] = useState<View>('main');
   const [isAssistantOpen, setIsAssistantOpen] = useState(false);
+  const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
   
   const [params, setParams] = useState<SearchParams>({
     establishmentType: '',
@@ -43,6 +47,7 @@ const App: React.FC = () => {
     setView('main');
     setResult('');
     setParams({ establishmentType: '', area: '', stories: '' });
+    setIsMobileDrawerOpen(false);
   };
 
   const handleGenerate = async () => {
@@ -53,6 +58,10 @@ const App: React.FC = () => {
     setResult('');
     
     try {
+      // Increment usage count
+      const currentCount = parseInt(localStorage.getItem('gemini_usage_count') || '0', 10);
+      localStorage.setItem('gemini_usage_count', (currentCount + 1).toString());
+
       const response = await generateFireSafetyReport(params);
       setResult(response.markdown);
       
@@ -78,6 +87,11 @@ const App: React.FC = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  const handleMobileNav = (newView: View) => {
+    setView(newView);
+    setIsMobileDrawerOpen(false);
+  };
+
   if (!user) {
     return <AuthView onLogin={handleLogin} />;
   }
@@ -95,22 +109,80 @@ const App: React.FC = () => {
       <DrawerNavigation activeView={view} setView={setView} user={user} onLogout={handleLogout} />
 
       {/* Main Content Area */}
-      <main className="flex-grow md:ml-64 pb-20 md:pb-0 transition-all duration-300 relative z-10">
+      <main className="flex-grow md:ml-20 lg:ml-64 transition-all duration-300 relative z-10">
         {/* Mobile Header */}
         <div className="md:hidden glass-panel border-b border-glass p-4 sticky top-0 z-40 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="h-8 w-8 bg-cobalt/20 border border-cobalt/50 rounded-lg flex items-center justify-center shadow-[0_0_15px_rgba(0,242,255,0.3)]">
-              <span className="text-lg font-bold text-cobalt">⚡</span>
+          <div className="flex items-center gap-4">
+            <button 
+              onClick={() => setIsMobileDrawerOpen(true)}
+              className="p-2 text-white hover:bg-white/10 rounded-lg transition-colors"
+            >
+              <Menu size={24} />
+            </button>
+            <div className="flex items-center gap-2">
+              <Logo size="sm" />
+              <h1 className="text-lg font-display text-white tracking-wider">SUPER FC AI</h1>
             </div>
-            <h1 className="text-lg font-display text-white tracking-wider">SUPER FC AI</h1>
           </div>
-          <button 
-            onClick={() => setIsAssistantOpen(true)}
-            className="p-2 bg-glass border border-glass rounded-full text-cobalt hover:bg-cobalt/10 active:scale-95 transition-all"
-          >
-            <span className="text-xl">🤖</span>
-          </button>
         </div>
+
+        {/* Mobile Drawer Overlay */}
+        {isMobileDrawerOpen && (
+          <div className="fixed inset-0 z-50 md:hidden">
+            <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setIsMobileDrawerOpen(false)}></div>
+            <div className="absolute left-0 top-0 bottom-0 w-64 bg-obsidian border-r border-glass p-6 flex flex-col animate-slide-in-left">
+              <div className="flex items-center justify-between mb-8">
+                <h2 className="text-xl font-display text-white tracking-wider">MENU</h2>
+                <button onClick={() => setIsMobileDrawerOpen(false)} className="text-muted hover:text-white">
+                  <X size={24} />
+                </button>
+              </div>
+
+              <nav className="space-y-2 flex-1">
+                <button 
+                  onClick={() => handleMobileNav('main')}
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${view === 'main' ? 'bg-cobalt/10 text-cobalt border border-cobalt/30' : 'text-muted hover:text-white hover:bg-white/5'}`}
+                >
+                  <Search size={20} />
+                  <span className="font-mono text-sm tracking-wider">NEW SEARCH</span>
+                </button>
+                <button 
+                  onClick={() => handleMobileNav('history')}
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${view === 'history' ? 'bg-cobalt/10 text-cobalt border border-cobalt/30' : 'text-muted hover:text-white hover:bg-white/5'}`}
+                >
+                  <History size={20} />
+                  <span className="font-mono text-sm tracking-wider">HISTORY</span>
+                </button>
+                <button 
+                  onClick={() => handleMobileNav('account')}
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${view === 'account' ? 'bg-cobalt/10 text-cobalt border border-cobalt/30' : 'text-muted hover:text-white hover:bg-white/5'}`}
+                >
+                  <UserIcon size={20} />
+                  <span className="font-mono text-sm tracking-wider">ACCOUNT</span>
+                </button>
+                {user.role === 'admin' && (
+                  <button 
+                    onClick={() => handleMobileNav('admin')}
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${view === 'admin' ? 'bg-purple-500/10 text-purple-400 border border-purple-500/30' : 'text-muted hover:text-white hover:bg-white/5'}`}
+                  >
+                    <Shield size={20} />
+                    <span className="font-mono text-sm tracking-wider">ADMIN</span>
+                  </button>
+                )}
+              </nav>
+
+              <div className="pt-6 border-t border-glass">
+                <button 
+                  onClick={handleLogout}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-muted hover:text-tangerine hover:bg-tangerine/10 rounded-lg transition-all"
+                >
+                  <LogOut size={20} />
+                  <span className="font-mono text-sm tracking-wider">LOGOUT</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {view === 'admin' && user.role === 'admin' ? (
           <AdminView />
@@ -120,6 +192,8 @@ const App: React.FC = () => {
             onSelect={handleSelectHistory} 
             onBack={() => setView('main')}
           />
+        ) : view === 'account' ? (
+          <AccountView user={user} />
         ) : (
           <div className="container mx-auto px-4 py-8 max-w-6xl">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
@@ -154,6 +228,9 @@ const App: React.FC = () => {
                      INITIALIZE ASSISTANT
                    </button>
                 </div>
+                
+                {/* Sidebar Ad for Free Users */}
+                <AdBanner userRole={user.role} position="sidebar" />
               </div>
 
               {/* Right Column: Results & Chat */}
@@ -201,18 +278,18 @@ const App: React.FC = () => {
         )}
       </main>
 
-      {/* Mobile Bottom Navigation */}
-      <BottomNavigation activeView={view} setView={setView} user={user} />
-
       <AssistantModal isOpen={isAssistantOpen} onClose={() => setIsAssistantOpen(false)} />
 
       <button
         onClick={() => setIsAssistantOpen(true)}
-        className="fixed bottom-20 md:bottom-6 right-6 h-16 w-16 bg-cobalt/10 text-cobalt rounded-full shadow-[0_0_30px_rgba(0,242,255,0.3)] hover:bg-cobalt hover:text-obsidian hover:scale-110 active:scale-95 transition-all z-[60] flex items-center justify-center border border-cobalt backdrop-blur-md group"
+        className="fixed bottom-6 right-6 h-16 w-16 bg-cobalt/10 text-cobalt rounded-full shadow-[0_0_30px_rgba(0,242,255,0.3)] hover:bg-cobalt hover:text-obsidian hover:scale-110 active:scale-95 transition-all z-[60] flex items-center justify-center border border-cobalt backdrop-blur-md group"
         title="Ask Super AI Assistant"
       >
         <span className="text-3xl group-hover:rotate-12 transition-transform">🤖</span>
       </button>
+
+      {/* Bottom Ad Banner for Free Users */}
+      <AdBanner userRole={user.role} position="bottom" />
     </div>
   );
 };

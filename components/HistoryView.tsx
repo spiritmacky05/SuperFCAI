@@ -13,7 +13,7 @@ const HistoryView: React.FC<HistoryViewProps> = ({ reports, onSelect, onBack }) 
     <div className="container mx-auto px-4 py-8 max-w-4xl">
       <button 
         onClick={onBack}
-        className="mb-6 flex items-center gap-2 text-muted hover:text-cobalt transition-colors font-mono text-xs uppercase tracking-widest group"
+        className="mb-6 flex items-center gap-2 text-muted hover:text-cobalt transition-colors font-display font-bold text-xs uppercase tracking-widest group"
       >
         <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
         Return to Main Terminal

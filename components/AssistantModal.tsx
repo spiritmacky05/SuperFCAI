@@ -3,6 +3,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Chat } from '@google/genai';
 import { createGeneralAssistantSession } from '../services/geminiService';
 import { ChatMessage } from '../types';
+import Logo from './Logo';
 import ReactMarkdown from 'react-markdown';
 import { Bot, Send, X, Sparkles, Loader2, User } from 'lucide-react';
 
@@ -67,9 +68,7 @@ const AssistantModal: React.FC<AssistantModalProps> = ({ isOpen, onClose }) => {
         <div className="bg-glass/50 border-b border-glass p-4 flex items-center justify-between relative overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-r from-cobalt/10 to-transparent opacity-50"></div>
           <div className="flex items-center gap-4 relative z-10">
-            <div className="h-12 w-12 bg-cobalt/10 border border-cobalt/30 rounded-xl flex items-center justify-center shadow-[0_0_20px_rgba(0,242,255,0.2)]">
-              <Bot className="w-7 h-7 text-cobalt" />
-            </div>
+            <Logo size="md" />
             <div>
               <h3 className="font-display text-lg text-white tracking-widest uppercase">Super FC AI Expert Mode</h3>
               <div className="flex items-center gap-2">
