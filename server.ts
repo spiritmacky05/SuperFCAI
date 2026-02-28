@@ -4,7 +4,11 @@ import { createServer as createViteServer } from 'vite';
 import { VertexAI } from '@google-cloud/vertexai';
 import { FIRE_CODE_CONTEXT } from './constants.js';
 import crypto from 'crypto';
-import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 dotenv.config();
 
@@ -277,9 +281,17 @@ ${knowledgeContext}
       appType: 'spa',
     });
     app.use(vite.middlewares);
+  } else {
+    // Serve static files from the dist directory
+    app.use(express.static(path.join(__dirname, 'dist')));
+
+    // Handle SPA routing by serving index.html for all other routes
+    app.get('*', (req, res) => {
+      res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+    });
   }
 
-  const PORT = 3000;
+  const PORT = process.env.PORT || 3000;
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`Server is running on http://localhost:${PORT}`);
   });
