@@ -18,6 +18,12 @@ export const generateFireSafetyReport = async (params: SearchParams): Promise<Ai
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ params }),
   });
+  
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.error || 'Failed to generate report');
+  }
+  
   return response.json();
 };
 
@@ -44,13 +50,30 @@ export const sendMessage = async (message: string, history: ChatMessage[]): Prom
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message, history }),
     });
+    
+    if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to send message');
+    }
+    
     const data = await response.json();
     return data.text;
 }
 
 export const generateNTC = async (params: SearchParams, violations: string): Promise<string> => {
-    // This function is not used in the UI, so we can leave it as a placeholder
-    return Promise.resolve('');
+    const response = await fetch(`${API_BASE_URL}/generateNTC`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ params, violations }),
+    });
+
+    if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to generate NTC');
+    }
+
+    const data = await response.json();
+    return data.text;
 }
 
 export const analyzeTrainingDocument = async (input: string | { data: string, mimeType: string }): Promise<any[]> => {

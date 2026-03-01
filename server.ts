@@ -117,6 +117,7 @@ async function createServer() {
 
     // PayMongo Checkout Session
     app.post('/api/paymongo/create-checkout', async (req, res) => {
+      console.log('Received request to /api/paymongo/create-checkout');
       try {
         const secretKey = process.env.PAYMONGO_SECRET_KEY;
         if (!secretKey) {
@@ -126,6 +127,7 @@ async function createServer() {
 
         const encodedKey = Buffer.from(secretKey).toString('base64');
         const origin = req.headers.origin || 'https://www.superfcai.tech';
+        console.log(`Creating checkout session for origin: ${origin}`);
 
         const response = await fetch('https://api.paymongo.com/v1/checkout_sessions', {
           method: 'POST',
@@ -158,13 +160,15 @@ async function createServer() {
         });
 
         const data = await response.json();
+        console.log('PayMongo API Response Status:', response.status);
 
         if (data.errors) {
-          console.error('PayMongo API Error:', data.errors);
+          console.error('PayMongo API Error:', JSON.stringify(data.errors));
           return res.status(400).json({ error: data.errors[0].detail });
         }
 
         const checkoutUrl = data.data.attributes.checkout_url;
+        console.log('Checkout URL created:', checkoutUrl);
         res.json({ url: checkoutUrl });
       } catch (error: any) {
         console.error('PayMongo Error:', error);
@@ -185,7 +189,7 @@ async function createServer() {
       console.error('Failed to initialize Google Gen AI:', error);
     }
 
-    const MODEL_NAME = 'gemini-1.5-pro'; // Using 1.5 Pro for better accuracy as requested
+    const MODEL_NAME = 'gemini-3.1-pro-preview'; // Updated to 3.1 Pro for maximum accuracy in provisions and citations
 
     app.post('/api/generateContent', async (req, res) => {
       try {
@@ -205,11 +209,15 @@ async function createServer() {
     });
 
     app.post('/api/generateFireSafetyReport', async (req, res) => {
+        console.log('Received request to /api/generateFireSafetyReport');
         try {
             if (!aiClient) {
+              console.error('AI Client is not initialized');
               return res.status(503).json({ error: 'AI service not configured' });
             }
             const { params } = req.body;
+            console.log('Generating report for:', JSON.stringify(params));
+            
             const getKnowledgeContext = () => ''; // Simplified for now
             const knowledgeContext = getKnowledgeContext();
 
@@ -245,7 +253,8 @@ Generate a Fire Safety Inspection Report for:
 - Measurement: ${params.area} SQM
 - Number of Stories: ${params.stories}
 `;
-
+            
+            console.log('Sending request to Gemini API...');
             const response = await aiClient.models.generateContent({
               model: MODEL_NAME,
               config: {
@@ -254,10 +263,11 @@ Generate a Fire Safety Inspection Report for:
               },
               contents: userPrompt
             });
-
+            
+            console.log('Gemini API Response received');
             res.json({ markdown: response.text || "No response generated." });
         } catch (error) {
-            console.error("Gen AI Error:", error);
+            console.error("Gen AI Error in generateFireSafetyReport:", error);
             res.status(500).json({ error: 'Failed to generate fire safety report' });
         }
     });
@@ -285,6 +295,10 @@ Generate a Fire Safety Inspection Report for:
             }
             const { message, history } = req.body;
             
+            if (!message || typeof message !== 'string' || !message.trim()) {
+                return res.status(400).json({ error: 'Message is required' });
+            }
+
             // Map history to Google Gen AI format
             const historyContent = (history || []).map((msg: any) => ({
               role: msg.role,
@@ -296,11 +310,64 @@ Generate a Fire Safety Inspection Report for:
               history: historyContent
             });
 
-            const result = await chat.sendMessage(message);
+            const result = await chat.sendMessage({ message });
             res.json({ text: result.text || "I couldn't generate a response." });
-        } catch (error) {
+        } catch (error: any) {
             console.error("Gen AI Error:", error);
-            res.status(500).json({ error: 'Failed to send message' });
+            res.status(500).json({ error: error.message || 'Failed to send message' });
+        }
+    });
+
+    app.post('/api/generateNTC', async (req, res) => {
+        console.log('Received request to /api/generateNTC');
+        try {
+            if (!aiClient) {
+              console.error('AI Client is not initialized');
+              return res.status(503).json({ error: 'AI service not configured' });
+            }
+            const { params, violations } = req.body;
+            console.log('Generating NTC for violations length:', violations.length);
+
+            const systemInstruction = `
+Role:
+You are a Fire Safety Inspector's Assistant. Your task is to take a list of observed violations and generate the technical details for a Notice to Comply (NTC).
+
+Context:
+- Establishment Type: ${params.establishmentType}
+- Area: ${params.area} sqm
+- Stories: ${params.stories}
+- Reference: RA 9514 (Fire Code of the Philippines)
+
+Task:
+For each violation listed, provide:
+1. The specific Section/Rule of RA 9514 that is violated.
+2. A brief explanation of why it is a violation.
+3. The required corrective action.
+
+Format:
+Use Markdown. Group by violation.
+`;
+
+            const userPrompt = `
+Observed Violations:
+${violations}
+
+Please generate the NTC details.
+`;
+
+            const response = await aiClient.models.generateContent({
+              model: MODEL_NAME,
+              config: {
+                systemInstruction: systemInstruction,
+                temperature: 0.2,
+              },
+              contents: userPrompt
+            });
+
+            res.json({ text: response.text || "No response generated." });
+        } catch (error) {
+            console.error("Gen AI Error in generateNTC:", error);
+            res.status(500).json({ error: 'Failed to generate NTC' });
         }
     });
 
