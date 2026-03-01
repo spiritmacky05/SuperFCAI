@@ -1,7 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Chat } from '@google/genai';
-import { createGeneralAssistantSession } from '../services/geminiService';
+import { sendMessage } from '../services/geminiService';
 import { ChatMessage } from '../types';
 import Logo from './Logo';
 import ReactMarkdown from 'react-markdown';
@@ -13,24 +12,12 @@ interface AssistantModalProps {
 }
 
 const AssistantModal: React.FC<AssistantModalProps> = ({ isOpen, onClose }) => {
-  const [chat, setChat] = useState<Chat | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([
     { role: 'model', text: '# Welcome to Super FC AI Expert Mode\nI am your advanced assistant for RA 9514. You can ask me anything about the Fire Code of the Philippines, specific occupancy requirements, or technical safety standards.\n\nHow can I help your inspection today?' }
   ]);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (isOpen && !chat) {
-      try {
-        const newChat = createGeneralAssistantSession();
-        setChat(newChat);
-      } catch (e) {
-        console.error("Failed to init general chat", e);
-      }
-    }
-  }, [isOpen]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -43,16 +30,16 @@ const AssistantModal: React.FC<AssistantModalProps> = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
 
   const handleSend = async () => {
-    if (!input.trim() || !chat) return;
+    if (!input.trim()) return;
 
     const userMsg = input;
+    const currentHistory = [...messages];
     setInput('');
     setMessages(prev => [...prev, { role: 'user', text: userMsg }]);
     setIsTyping(true);
 
     try {
-      const result = await chat.sendMessage({ message: userMsg });
-      const responseText = result.text || "I couldn't generate a response.";
+      const responseText = await sendMessage(userMsg, currentHistory);
       setMessages(prev => [...prev, { role: 'model', text: responseText }]);
     } catch (error) {
       setMessages(prev => [...prev, { role: 'model', text: "Sorry, I encountered an error connecting to the expert assistant." }]);
