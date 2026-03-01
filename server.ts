@@ -182,6 +182,19 @@ async function createServer() {
       if (process.env.GEMINI_API_KEY) {
         genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
         console.log('Google Generative AI initialized successfully');
+
+        // Log available models to debug "Model not found" errors
+        fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${process.env.GEMINI_API_KEY}`)
+          .then(res => res.json())
+          .then(data => {
+            if (data.models) {
+              console.log('Available Gemini Models:', data.models.map((m: any) => m.name));
+            } else {
+              console.log('No models returned from API check:', data);
+            }
+          })
+          .catch(err => console.error('Failed to list models:', err));
+
       } else {
         console.warn('GEMINI_API_KEY missing. AI features will be disabled.');
       }
@@ -189,8 +202,8 @@ async function createServer() {
       console.error('Failed to initialize Google Generative AI:', error);
     }
 
-    // Using Gemini 1.5 Flash for stability and speed
-    const MODEL_NAME = 'gemini-1.5-flash'; 
+    // Using gemini-1.5-flash-latest as a fallback if the base name fails
+    const MODEL_NAME = 'gemini-1.5-flash-latest'; 
 
     app.post('/api/generateContent', async (req, res) => {
       try {
