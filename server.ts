@@ -189,7 +189,9 @@ async function createServer() {
       console.error('Failed to initialize Google Gen AI:', error);
     }
 
-    const MODEL_NAME = 'gemini-3.1-pro-preview'; // Updated to 3.1 Pro for maximum accuracy in provisions and citations
+    // Using Flash model for better performance and stability in this environment
+    // while maintaining high accuracy via the provided context.
+    const MODEL_NAME = 'gemini-2.5-flash-preview'; 
 
     app.post('/api/generateContent', async (req, res) => {
       try {
