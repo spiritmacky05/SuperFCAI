@@ -1,7 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import { createServer as createViteServer } from 'vite';
-import { GoogleGenAI } from '@google/genai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import { FIRE_CODE_CONTEXT } from './constants.ts';
 import crypto from 'crypto';
 import path from 'path';
@@ -176,33 +176,32 @@ async function createServer() {
       }
     });
 
-    // Initialize Google Gen AI client
-    let aiClient: GoogleGenAI | null = null;
+    // Initialize Google Generative AI client
+    let genAI: GoogleGenerativeAI | null = null;
     try {
       if (process.env.GEMINI_API_KEY) {
-        aiClient = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-        console.log('Google Gen AI initialized successfully');
+        genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+        console.log('Google Generative AI initialized successfully');
       } else {
         console.warn('GEMINI_API_KEY missing. AI features will be disabled.');
       }
     } catch (error) {
-      console.error('Failed to initialize Google Gen AI:', error);
+      console.error('Failed to initialize Google Generative AI:', error);
     }
 
-    // Using Gemini 2.0 Flash Exp as it is the current available flash model in this environment
-    const MODEL_NAME = 'gemini-2.0-flash-exp'; 
+    // Using Gemini 1.5 Flash for stability and speed
+    const MODEL_NAME = 'gemini-1.5-flash'; 
 
     app.post('/api/generateContent', async (req, res) => {
       try {
-        if (!aiClient) {
+        if (!genAI) {
           return res.status(503).json({ error: 'AI service not configured' });
         }
         const { prompt } = req.body;
-        const response = await aiClient.models.generateContent({
-          model: MODEL_NAME,
-          contents: prompt,
-        });
-        res.json({ text: response.text || "No response generated." });
+        const model = genAI.getGenerativeModel({ model: MODEL_NAME });
+        const result = await model.generateContent(prompt);
+        const response = await result.response;
+        res.json({ text: response.text() || "No response generated." });
       } catch (error) {
         console.error("Gen AI Error:", error);
         res.status(500).json({ error: 'Failed to generate content' });
@@ -212,7 +211,7 @@ async function createServer() {
     app.post('/api/generateFireSafetyReport', async (req, res) => {
         console.log('Received request to /api/generateFireSafetyReport');
         try {
-            if (!aiClient) {
+            if (!genAI) {
               console.error('AI Client is not initialized');
               return res.status(503).json({ error: 'AI service not configured' });
             }
@@ -256,17 +255,16 @@ Generate a Fire Safety Inspection Report for:
 `;
             
             console.log('Sending request to Gemini API...');
-            const response = await aiClient.models.generateContent({
-              model: MODEL_NAME,
-              config: {
-                systemInstruction: systemInstruction,
-                temperature: 0.2,
-              },
-              contents: userPrompt
+            const model = genAI.getGenerativeModel({ 
+                model: MODEL_NAME,
+                systemInstruction: systemInstruction
             });
+
+            const result = await model.generateContent(userPrompt);
+            const response = await result.response;
             
             console.log('Gemini API Response received');
-            res.json({ markdown: response.text || "No response generated." });
+            res.json({ markdown: response.text() || "No response generated." });
         } catch (error) {
             console.error("Gen AI Error in generateFireSafetyReport:", error);
             res.status(500).json({ error: 'Failed to generate fire safety report' });
@@ -275,7 +273,7 @@ Generate a Fire Safety Inspection Report for:
 
     app.post('/api/createChatSession', async (req, res) => {
         try {
-            if (!aiClient) {
+            if (!genAI) {
               return res.status(503).json({ error: 'AI service not configured' });
             }
             // In the new SDK, chat state is managed by the client or by maintaining history.
@@ -291,7 +289,7 @@ Generate a Fire Safety Inspection Report for:
 
     app.post('/api/sendMessage', async (req, res) => {
         try {
-            if (!aiClient) {
+            if (!genAI) {
               return res.status(503).json({ error: 'AI service not configured' });
             }
             const { message, history } = req.body;
@@ -300,19 +298,20 @@ Generate a Fire Safety Inspection Report for:
                 return res.status(400).json({ error: 'Message is required' });
             }
 
-            // Map history to Google Gen AI format
+            // Map history to Google Generative AI format
             const historyContent = (history || []).map((msg: any) => ({
-              role: msg.role,
+              role: msg.role === 'user' ? 'user' : 'model',
               parts: [{ text: msg.text }]
             }));
             
-            const chat = aiClient.chats.create({
-              model: MODEL_NAME,
+            const model = genAI.getGenerativeModel({ model: MODEL_NAME });
+            const chat = model.startChat({
               history: historyContent
             });
 
-            const result = await chat.sendMessage({ message });
-            res.json({ text: result.text || "I couldn't generate a response." });
+            const result = await chat.sendMessage(message);
+            const response = await result.response;
+            res.json({ text: response.text() || "I couldn't generate a response." });
         } catch (error: any) {
             console.error("Gen AI Error:", error);
             res.status(500).json({ error: error.message || 'Failed to send message' });
@@ -322,7 +321,7 @@ Generate a Fire Safety Inspection Report for:
     app.post('/api/generateNTC', async (req, res) => {
         console.log('Received request to /api/generateNTC');
         try {
-            if (!aiClient) {
+            if (!genAI) {
               console.error('AI Client is not initialized');
               return res.status(503).json({ error: 'AI service not configured' });
             }
@@ -356,16 +355,15 @@ ${violations}
 Please generate the NTC details.
 `;
 
-            const response = await aiClient.models.generateContent({
-              model: MODEL_NAME,
-              config: {
-                systemInstruction: systemInstruction,
-                temperature: 0.2,
-              },
-              contents: userPrompt
+            const model = genAI.getGenerativeModel({ 
+                model: MODEL_NAME,
+                systemInstruction: systemInstruction
             });
 
-            res.json({ text: response.text || "No response generated." });
+            const result = await model.generateContent(userPrompt);
+            const response = await result.response;
+
+            res.json({ text: response.text() || "No response generated." });
         } catch (error) {
             console.error("Gen AI Error in generateNTC:", error);
             res.status(500).json({ error: 'Failed to generate NTC' });
