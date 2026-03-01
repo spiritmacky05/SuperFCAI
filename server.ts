@@ -147,7 +147,7 @@ async function createServer() {
                     quantity: 1,
                   },
                 ],
-                payment_method_types: ['gcash'],
+                payment_method_types: ['card', 'gcash', 'paymaya', 'grab_pay'],
                 success_url: `${origin}/?success=true`,
                 cancel_url: `${origin}/?canceled=true`,
                 description: 'Super FC AI Pro Subscription',
