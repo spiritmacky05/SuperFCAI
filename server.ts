@@ -189,9 +189,8 @@ async function createServer() {
       console.error('Failed to initialize Google Gen AI:', error);
     }
 
-    // Using Flash model for better performance and stability in this environment
-    // while maintaining high accuracy via the provided context.
-    const MODEL_NAME = 'gemini-2.5-flash-preview'; 
+    // Using Gemini 2.0 Flash Exp as it is the current available flash model in this environment
+    const MODEL_NAME = 'gemini-2.0-flash-exp'; 
 
     app.post('/api/generateContent', async (req, res) => {
       try {
