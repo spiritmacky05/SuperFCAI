@@ -34,8 +34,49 @@ const App: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Check for existing session on load (optional, for now we rely on login)
-  // In a real app, we'd check a token in localStorage
+  // Check for existing session on load
+  useEffect(() => {
+    const savedUser = localStorage.getItem('superfc_user');
+    if (savedUser) {
+      try {
+        const parsedUser = JSON.parse(savedUser);
+        setUser(parsedUser);
+      } catch (e) {
+        console.error('Failed to parse user session', e);
+        localStorage.removeItem('superfc_user');
+      }
+    }
+  }, []);
+
+  // Persist user on change
+  useEffect(() => {
+    if (user) {
+      localStorage.setItem('superfc_user', JSON.stringify(user));
+    } else {
+      localStorage.removeItem('superfc_user');
+    }
+  }, [user]);
+
+  useEffect(() => {
+    // Check for payment success
+    const urlParams = new URLSearchParams(window.location.search);
+    const success = urlParams.get('success');
+    const canceled = urlParams.get('canceled');
+
+    if (success) {
+      alert('Payment successful! Your account has been upgraded to Pro.');
+      // Ideally, you would fetch the updated user profile here
+      // For now, we'll just update the local state if the user is logged in
+      if (user) {
+        setUser({ ...user, role: 'pro' });
+      }
+      // Clean up URL
+      window.history.replaceState({}, '', window.location.pathname);
+    } else if (canceled) {
+      alert('Payment canceled.');
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, [user]); // Add user dependency so it runs after login if needed, or check on mount
 
   const handleLogin = (loggedInUser: User) => {
     setUser(loggedInUser);

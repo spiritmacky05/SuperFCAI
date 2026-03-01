@@ -1,12 +1,13 @@
 import express from 'express';
 import cors from 'cors';
 import { createServer as createViteServer } from 'vite';
-import { VertexAI } from '@google-cloud/vertexai';
+import { GoogleGenAI } from '@google/genai';
 import { FIRE_CODE_CONTEXT } from './constants.js';
 import crypto from 'crypto';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
+import pg from 'pg';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -15,8 +16,25 @@ dotenv.config();
 
 async function createServer() {
   const app = express();
+  const PORT = process.env.PORT || 3000;
 
   app.use(cors());
+
+  // PostgreSQL Connection
+  let dbPool: pg.Pool | null = null;
+  if (process.env.DATABASE_URL) {
+    try {
+      dbPool = new pg.Pool({
+        connectionString: process.env.DATABASE_URL,
+        ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+      });
+      console.log('PostgreSQL connection pool initialized');
+    } catch (err) {
+      console.error('Failed to initialize PostgreSQL pool:', err);
+    }
+  } else {
+    console.warn('DATABASE_URL not set. PostgreSQL features disabled.');
+  }
 
   // PayMongo Webhook
   app.post('/api/paymongo/webhook', express.raw({ type: 'application/json' }), (req, res) => {
@@ -84,7 +102,12 @@ async function createServer() {
 
   // Health Check
   app.get('/api/health', (req, res) => {
-    res.json({ status: 'ok', env: process.env.NODE_ENV });
+    res.json({ 
+      status: 'ok', 
+      env: process.env.NODE_ENV,
+      db: !!dbPool,
+      ai: !!process.env.GEMINI_API_KEY
+    });
   });
 
   // PayMongo Checkout Session
@@ -146,44 +169,41 @@ async function createServer() {
 
 
 
-  // Initialize the Vertex AI client
-  let generativeModel: any = null;
+  // Initialize Google Gen AI client
+  let aiClient: GoogleGenAI | null = null;
   try {
-    if (process.env.PROJECT_ID && process.env.LOCATION) {
-      const vertex_ai = new VertexAI({
-        project: process.env.PROJECT_ID,
-        location: process.env.LOCATION,
-      });
-      const model = 'gemini-1.5-pro-preview-0409';
-      generativeModel = vertex_ai.getGenerativeModel({
-        model: model,
-      });
-      console.log('Vertex AI initialized successfully');
+    if (process.env.GEMINI_API_KEY) {
+      aiClient = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+      console.log('Google Gen AI initialized successfully');
     } else {
-      console.warn('Vertex AI credentials (PROJECT_ID, LOCATION) missing. AI features will be disabled.');
+      console.warn('GEMINI_API_KEY missing. AI features will be disabled.');
     }
   } catch (error) {
-    console.error('Failed to initialize Vertex AI:', error);
+    console.error('Failed to initialize Google Gen AI:', error);
   }
+
+  const MODEL_NAME = 'gemini-1.5-pro'; // Using 1.5 Pro for better accuracy as requested
 
   app.post('/api/generateContent', async (req, res) => {
     try {
-      if (!generativeModel) {
+      if (!aiClient) {
         return res.status(503).json({ error: 'AI service not configured' });
       }
       const { prompt } = req.body;
-      const resp = await generativeModel.generateContent(prompt);
-      const response = await resp.response;
-      res.json({ text: response.candidates[0].content.parts[0].text || "No response generated." });
+      const response = await aiClient.models.generateContent({
+        model: MODEL_NAME,
+        contents: prompt,
+      });
+      res.json({ text: response.text || "No response generated." });
     } catch (error) {
-      console.error("Vertex AI Error:", error);
+      console.error("Gen AI Error:", error);
       res.status(500).json({ error: 'Failed to generate content' });
     }
   });
 
   app.post('/api/generateFireSafetyReport', async (req, res) => {
       try {
-          if (!generativeModel) {
+          if (!aiClient) {
             return res.status(503).json({ error: 'AI service not configured' });
           }
           const { params } = req.body;
@@ -223,79 +243,59 @@ Generate a Fire Safety Inspection Report for:
 - Number of Stories: ${params.stories}
 `;
 
-          const request = {
-              contents: [{role: 'user', parts: [{text: userPrompt}]}],
-              generationConfig: {
-                  temperature: 0.2,
-              },
-              systemInstruction: {
-                  role: 'system',
-                  parts: [{text: systemInstruction}]
-              }
-          };
-          const resp = await generativeModel.generateContent(request);
-          const response = await resp.response;
+          const response = await aiClient.models.generateContent({
+            model: MODEL_NAME,
+            config: {
+              systemInstruction: systemInstruction,
+              temperature: 0.2,
+            },
+            contents: userPrompt
+          });
 
-          res.json({ markdown: response.candidates[0].content.parts[0].text || "No response generated." });
+          res.json({ markdown: response.text || "No response generated." });
       } catch (error) {
-          console.error("Vertex AI Error:", error);
+          console.error("Gen AI Error:", error);
           res.status(500).json({ error: 'Failed to generate fire safety report' });
       }
   });
 
   app.post('/api/createChatSession', async (req, res) => {
       try {
-          if (!generativeModel) {
+          if (!aiClient) {
             return res.status(503).json({ error: 'AI service not configured' });
           }
-          const { reportContext } = req.body;
-          const getKnowledgeContext = () => ''; // Simplified for now
-          const knowledgeContext = getKnowledgeContext();
-
-          const systemInstruction = `
-You are Super FC AI, a helpful Fire Safety assistant. 
-The user is viewing a generated inspection report based on RA 9514. 
-Answer their follow-up questions specifically about the report or general fire safety rules.
-Always refer to the provided context if possible.
-
-CONTEXT REPORT:
-${reportContext}
-
-ORIGINAL REFERENCE MATERIAL:
-${FIRE_CODE_CONTEXT}
-
-${knowledgeContext}
-`;
-
-          const chat = generativeModel.startChat({ 
-              systemInstruction: {
-                role: 'system',
-                parts: [{text: systemInstruction}]
-              }
-          });
-
-          // We can't serialize the chat object, so we'll handle chat messages in a separate endpoint
-          // For now, we'll just send a success message
-          res.json({ message: 'Chat session created successfully' });
+          // In the new SDK, chat state is managed by the client or by maintaining history.
+          // Since this is a stateless API, we just acknowledge.
+          // Real chat history management would happen in /api/sendMessage
+          res.json({ message: 'Chat session ready' });
 
       } catch (error) {
-          console.error("Vertex AI Error:", error);
+          console.error("Gen AI Error:", error);
           res.status(500).json({ error: 'Failed to create chat session' });
       }
   });
 
   app.post('/api/sendMessage', async (req, res) => {
       try {
-          if (!generativeModel) {
+          if (!aiClient) {
             return res.status(503).json({ error: 'AI service not configured' });
           }
           const { message, history } = req.body;
-          const chat = generativeModel.startChat({ history });
+          
+          // Convert history format if necessary. 
+          // The @google/genai SDK expects 'role' and 'parts'.
+          // Assuming frontend sends compatible format or we map it here.
+          // Frontend sends: { role: 'user' | 'model', parts: [{ text: string }] }
+          
+          const chat = aiClient.chats.create({
+            model: MODEL_NAME,
+            history: history || []
+          });
+
           const result = await chat.sendMessage(message);
-          const response = result.response;
-          res.json({ text: response.candidates[0].content.parts[0].text || "I couldn't generate a response." });
+          res.json({ text: result.text || "I couldn't generate a response." });
       } catch (error) {
-          console.error("Vertex AI Error:", error);
+          console.error("Gen AI Error:", error);
           res.status(500).json({ error: 'Failed to send message' });
       }
   });
@@ -316,12 +316,13 @@ ${knowledgeContext}
     });
   }
 
-  const PORT = process.env.PORT || 3000;
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`Server is running on http://localhost:${PORT}`);
     console.log(`Environment: ${process.env.NODE_ENV}`);
     console.log(`PayMongo Key Configured: ${!!process.env.PAYMONGO_SECRET_KEY}`);
     console.log(`PayMongo Webhook Secret Configured: ${!!process.env.PAYMONGO_WEBHOOK_SECRET}`);
+    console.log(`Gemini API Key Configured: ${!!process.env.GEMINI_API_KEY}`);
+    console.log(`Database URL Configured: ${!!process.env.DATABASE_URL}`);
   });
 }
 
