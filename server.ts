@@ -202,8 +202,9 @@ async function createServer() {
       console.error('Failed to initialize Google Generative AI:', error);
     }
 
-    // Using gemini-1.5-flash-latest as a fallback if the base name fails
-    const MODEL_NAME = 'gemini-1.5-flash-latest'; 
+    // Using standard aliases for models
+    const MODEL_NAME = 'gemini-1.5-flash'; 
+    const FALLBACK_MODEL = 'gemini-1.5-pro';
 
     app.post('/api/generateContent', async (req, res) => {
       try {
@@ -211,8 +212,18 @@ async function createServer() {
           return res.status(503).json({ error: 'AI service not configured' });
         }
         const { prompt } = req.body;
-        const model = genAI.getGenerativeModel({ model: MODEL_NAME });
-        const result = await model.generateContent(prompt);
+        
+        let model = genAI.getGenerativeModel({ model: MODEL_NAME });
+        let result;
+        
+        try {
+            result = await model.generateContent(prompt);
+        } catch (primaryError: any) {
+            console.warn(`Primary model ${MODEL_NAME} failed, trying fallback ${FALLBACK_MODEL}. Error: ${primaryError.message}`);
+            model = genAI.getGenerativeModel({ model: FALLBACK_MODEL });
+            result = await model.generateContent(prompt);
+        }
+        
         const response = await result.response;
         res.json({ text: response.text() || "No response generated." });
       } catch (error) {
@@ -268,12 +279,28 @@ Generate a Fire Safety Inspection Report for:
 `;
             
             console.log('Sending request to Gemini API...');
-            const model = genAI.getGenerativeModel({ 
+            
+            let model = genAI.getGenerativeModel({ 
                 model: MODEL_NAME,
                 systemInstruction: systemInstruction
             });
 
-            const result = await model.generateContent(userPrompt);
+            let result;
+            try {
+                result = await model.generateContent(userPrompt);
+            } catch (primaryError: any) {
+                 console.warn(`Primary model ${MODEL_NAME} failed in report gen, trying fallback ${FALLBACK_MODEL}. Error: ${primaryError.message}`);
+                 // Note: gemini-pro might not support systemInstruction in the same way depending on version, 
+                 // but the SDK handles it. However, gemini-pro is older. 
+                 // Let's try gemini-1.5-pro as fallback instead if flash fails.
+                 const BETTER_FALLBACK = 'gemini-1.5-pro';
+                 model = genAI.getGenerativeModel({ 
+                    model: BETTER_FALLBACK,
+                    systemInstruction: systemInstruction
+                 });
+                 result = await model.generateContent(userPrompt);
+            }
+
             const response = await result.response;
             
             console.log('Gemini API Response received');
