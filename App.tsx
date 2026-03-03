@@ -4,7 +4,7 @@ import SearchForm from './components/SearchForm';
 import ResultDisplay from './components/ResultDisplay';
 import HistoryView from './components/HistoryView';
 import ChatBox from './components/ChatBox';
-import Logo from './components/Logo';
+import Logo from './components/superfcai logo png 2';
 import NTCGenerator from './components/NTCGenerator';
 import AssistantModal from './components/AssistantModal';
 import AdminView from './components/AdminView';
