@@ -5,12 +5,13 @@ import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, '.', '');
+    const disableHmr = process.env.DISABLE_HMR === 'true' || env.DISABLE_HMR === 'true';
     return {
       base: './',
       server: {
         port: 3000,
         host: '0.0.0.0',
-        hmr: env.DISABLE_HMR === 'true' ? false : {
+        hmr: disableHmr ? false : {
           clientPort: 443,
         }
       },
