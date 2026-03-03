@@ -191,7 +191,7 @@ async function createServer() {
       console.error('Failed to initialize OpenAI:', error);
     }
 
-    const MODEL_NAME = 'gpt-4o'; 
+    const MODEL_NAME = 'gpt-5.1'; 
 
     app.post('/api/generateContent', async (req, res) => {
       try {
