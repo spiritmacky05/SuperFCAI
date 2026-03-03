@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { User } from '../types';
-import Logo from './Logo';
+import Logo from './superfcai logo png 2';
 import { storageService } from '../services/storageService';
 import { Lock, Mail, User as UserIcon, LogIn, UserPlus, Eye, EyeOff } from 'lucide-react';
 
