@@ -4,7 +4,7 @@ import SearchForm from './components/SearchForm';
 import ResultDisplay from './components/ResultDisplay';
 import HistoryView from './components/HistoryView';
 import ChatBox from './components/ChatBox';
-import Logo from './components/superfcai logo png 2';
+import Logo from './components/Logo';
 import NTCGenerator from './components/NTCGenerator';
 import AssistantModal from './components/AssistantModal';
 import AdminView from './components/AdminView';
@@ -12,6 +12,7 @@ import DrawerNavigation from './components/DrawerNavigation';
 import AccountView from './components/AccountView';
 import AuthView from './components/AuthView';
 import AdBanner from './components/AdBanner';
+import PWAInstallPrompt from './components/PWAInstallPrompt';
 import { SearchParams, User, SavedReport } from './types';
 import { generateFireSafetyReport } from './services/geminiService';
 import { storageService } from './services/storageService';
@@ -320,6 +321,7 @@ const App: React.FC = () => {
       </main>
 
       <AssistantModal isOpen={isAssistantOpen} onClose={() => setIsAssistantOpen(false)} />
+      <PWAInstallPrompt />
 
       <button
         onClick={() => setIsAssistantOpen(true)}

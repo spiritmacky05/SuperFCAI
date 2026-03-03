@@ -1,7 +1,7 @@
 import React from 'react';
 import { Search, History, Settings, LogOut, Shield, User as UserIcon } from 'lucide-react';
 import { User } from '../types';
-import Logo from './superfcai logo png 2';
+import Logo from './Logo';
 
 interface DrawerNavigationProps {
   activeView: 'main' | 'history' | 'admin' | 'account';

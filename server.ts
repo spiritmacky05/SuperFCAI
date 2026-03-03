@@ -178,20 +178,32 @@ async function createServer() {
 
     // Initialize OpenAI client
     let openai: OpenAI | null = null;
+    let MODEL_NAME = 'gpt-4o';
+
     try {
       if (process.env.OPENAI_API_KEY) {
-        openai = new OpenAI({
-            apiKey: process.env.OPENAI_API_KEY,
-        });
-        console.log('OpenAI initialized successfully');
+        const apiKey = process.env.OPENAI_API_KEY;
+        const isXAI = apiKey.startsWith('xai-');
+
+        if (isXAI) {
+          console.log('Detected xAI API Key. Configuring for xAI...');
+          openai = new OpenAI({
+            apiKey: apiKey,
+            baseURL: 'https://api.x.ai/v1',
+          });
+          MODEL_NAME = 'grok-beta';
+        } else {
+          openai = new OpenAI({
+            apiKey: apiKey,
+          });
+          console.log('OpenAI initialized successfully');
+        }
       } else {
         console.warn('OPENAI_API_KEY missing. AI features will be disabled.');
       }
     } catch (error) {
       console.error('Failed to initialize OpenAI:', error);
-    }
-
-    const MODEL_NAME = 'gpt-5.1'; 
+    } 
 
     app.post('/api/generateContent', async (req, res) => {
       try {
