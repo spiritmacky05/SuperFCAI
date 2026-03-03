@@ -111,7 +111,7 @@ async function createServer() {
         status: 'ok', 
         env: process.env.NODE_ENV,
         db: !!dbPool,
-        ai: !!process.env.GROK_API_KEY
+        ai: !!process.env.OPENAI_API_KEY
       });
     });
 
@@ -176,31 +176,22 @@ async function createServer() {
       }
     });
 
-    // Initialize Grok (OpenAI SDK) client
+    // Initialize OpenAI client
     let openai: OpenAI | null = null;
     try {
-      if (process.env.GROK_API_KEY) {
+      if (process.env.OPENAI_API_KEY) {
         openai = new OpenAI({
-            apiKey: process.env.GROK_API_KEY,
-            baseURL: 'https://api.x.ai/v1',
+            apiKey: process.env.OPENAI_API_KEY,
         });
-        console.log('Grok (OpenAI SDK) initialized successfully');
-        
-        // Log available models to help debug
-        try {
-            const models = await openai.models.list();
-            console.log('Available Grok Models:', models.data.map((m: any) => m.id));
-        } catch (modelError) {
-            console.error('Failed to list Grok models:', modelError);
-        }
+        console.log('OpenAI initialized successfully');
       } else {
-        console.warn('GROK_API_KEY missing. AI features will be disabled.');
+        console.warn('OPENAI_API_KEY missing. AI features will be disabled.');
       }
     } catch (error) {
-      console.error('Failed to initialize Grok AI:', error);
+      console.error('Failed to initialize OpenAI:', error);
     }
 
-    const MODEL_NAME = 'grok-beta'; 
+    const MODEL_NAME = 'gpt-4o'; 
 
     app.post('/api/generateContent', async (req, res) => {
       try {
@@ -219,7 +210,7 @@ async function createServer() {
         const text = completion.choices[0]?.message?.content || "No response generated.";
         res.json({ text });
       } catch (error) {
-        console.error("Grok AI Error:", error);
+        console.error("OpenAI Error:", error);
         res.status(500).json({ error: 'Failed to generate content' });
       }
     });
@@ -270,7 +261,7 @@ Generate a Fire Safety Inspection Report for:
 - Number of Stories: ${params.stories}
 `;
             
-            console.log('Sending request to Grok API...');
+            console.log('Sending request to OpenAI API...');
             
             const completion = await openai.chat.completions.create({
                 model: MODEL_NAME,
@@ -282,10 +273,10 @@ Generate a Fire Safety Inspection Report for:
 
             const markdown = completion.choices[0]?.message?.content || "No response generated.";
             
-            console.log('Grok API Response received');
+            console.log('OpenAI API Response received');
             res.json({ markdown });
         } catch (error) {
-            console.error("Grok AI Error in generateFireSafetyReport:", error);
+            console.error("OpenAI Error in generateFireSafetyReport:", error);
             res.status(500).json({ error: 'Failed to generate fire safety report' });
         }
     });
@@ -298,7 +289,7 @@ Generate a Fire Safety Inspection Report for:
             res.json({ message: 'Chat session ready' });
 
         } catch (error) {
-            console.error("Grok AI Error:", error);
+            console.error("OpenAI Error:", error);
             res.status(500).json({ error: 'Failed to create chat session' });
         }
     });
@@ -331,7 +322,7 @@ Generate a Fire Safety Inspection Report for:
             const text = completion.choices[0]?.message?.content || "I couldn't generate a response.";
             res.json({ text });
         } catch (error: any) {
-            console.error("Grok AI Error:", error);
+            console.error("OpenAI Error:", error);
             res.status(500).json({ error: error.message || 'Failed to send message' });
         }
     });
@@ -385,7 +376,7 @@ Please generate the NTC details.
 
             res.json({ text });
         } catch (error) {
-            console.error("Grok AI Error in generateNTC:", error);
+            console.error("OpenAI Error in generateNTC:", error);
             res.status(500).json({ error: 'Failed to generate NTC' });
         }
     });
@@ -411,7 +402,7 @@ Please generate the NTC details.
       console.log(`Environment: ${process.env.NODE_ENV}`);
       console.log(`PayMongo Key Configured: ${!!process.env.PAYMONGO_SECRET_KEY}`);
       console.log(`PayMongo Webhook Secret Configured: ${!!process.env.PAYMONGO_WEBHOOK_SECRET}`);
-      console.log(`Grok API Key Configured: ${!!process.env.GROK_API_KEY}`);
+      console.log(`OpenAI API Key Configured: ${!!process.env.OPENAI_API_KEY}`);
       console.log(`Database URL Configured: ${!!process.env.DATABASE_URL}`);
     });
   } catch (error) {
