@@ -116,7 +116,7 @@ const AccountView: React.FC<AccountViewProps> = ({ user }) => {
                 <Zap className="text-yellow-400 fill-yellow-400" />
                 UPGRADE TO PRO
               </h3>
-              <p className="text-muted mb-6">Unlock advanced features and higher usage limits for only ₱199.00/month.</p>
+              <p className="text-muted mb-6">Unlock advanced features and higher usage limits for only ₱99.00/month.</p>
               
               <ul className="space-y-2 mb-6">
                 {[
