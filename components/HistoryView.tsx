@@ -1,14 +1,34 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { SavedReport } from '../types';
-import { Clock, ArrowLeft, FileText, ChevronRight, Calendar, Building } from 'lucide-react';
+import { storageService } from '../services/storageService';
+import { Clock, ArrowLeft, FileText, ChevronRight, Calendar, Building, Loader2 } from 'lucide-react';
 
 interface HistoryViewProps {
-  reports: SavedReport[];
+  email: string;
   onSelect: (report: SavedReport) => void;
   onBack: () => void;
 }
 
-const HistoryView: React.FC<HistoryViewProps> = ({ reports, onSelect, onBack }) => {
+const HistoryView: React.FC<HistoryViewProps> = ({ email, onSelect, onBack }) => {
+  const [reports, setReports] = useState<SavedReport[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchReports = async () => {
+      setIsLoading(true);
+      try {
+        const data = await storageService.getReports(email);
+        setReports(data);
+      } catch (error) {
+        console.error("Failed to fetch reports", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchReports();
+  }, [email]);
+
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">
       <button 
@@ -31,7 +51,12 @@ const HistoryView: React.FC<HistoryViewProps> = ({ reports, onSelect, onBack }) 
         </div>
 
         <div className="divide-y divide-glass">
-          {reports.length === 0 ? (
+          {isLoading ? (
+            <div className="p-12 text-center text-muted m-6 rounded-lg bg-glass/20 flex flex-col items-center">
+              <Loader2 className="w-8 h-8 animate-spin mb-3 text-cobalt" />
+              <p className="font-mono text-sm">Retrieving archived data...</p>
+            </div>
+          ) : reports.length === 0 ? (
             <div className="p-12 text-center text-muted border-2 border-dashed border-glass m-6 rounded-lg bg-glass/20">
               <Clock className="w-12 h-12 mx-auto mb-3 opacity-20" />
               <p className="font-mono text-sm">No inspection records found in database.</p>
@@ -58,7 +83,7 @@ const HistoryView: React.FC<HistoryViewProps> = ({ reports, onSelect, onBack }) 
                       </div>
                       <div className="flex items-center gap-1.5">
                         <Calendar className="w-3 h-3" />
-                        <span>{new Date(report.timestamp).toLocaleDateString()}</span>
+                        <span>{new Date(Number(report.timestamp)).toLocaleDateString()}</span>
                       </div>
                     </div>
                   </div>

@@ -113,7 +113,7 @@ const App: React.FC = () => {
         params: { ...params },
         result: response.markdown
       };
-      storageService.saveReport(user.email, report);
+      await storageService.saveReport(user.email, report);
     } catch (err: any) {
       console.error(err);
       setError(err instanceof Error ? err.message : "Unable to generate report. Please check your connection and API key.");
@@ -230,7 +230,7 @@ const App: React.FC = () => {
           <AdminView />
         ) : view === 'history' ? (
           <HistoryView 
-            reports={storageService.getReports(user.email)} 
+            email={user.email} 
             onSelect={handleSelectHistory} 
             onBack={() => setView('main')}
           />

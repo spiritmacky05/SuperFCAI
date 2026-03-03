@@ -24,9 +24,9 @@ const AuthForms: React.FC<AuthFormsProps> = ({ onLogin }) => {
     setSuccess('');
   };
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    const user = storageService.login(email, password);
+    const user = await storageService.login(email, password);
     if (user) {
       onLogin(user);
     } else {
@@ -34,13 +34,13 @@ const AuthForms: React.FC<AuthFormsProps> = ({ onLogin }) => {
     }
   };
 
-  const handleSignup = (e: React.FormEvent) => {
+  const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name || !email || !password) {
       setError('All fields are required');
       return;
     }
-    const success = storageService.register({ name, email, password, role: 'free' });
+    const success = await storageService.register({ name, email, password, role: 'free' });
     if (success) {
       setSuccess('Account created! Please log in.');
       setTimeout(() => {

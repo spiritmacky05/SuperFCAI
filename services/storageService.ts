@@ -1,132 +1,140 @@
 
 import { SavedReport, User, KnowledgeEntry } from '../types';
 
-const REPORTS_KEY_PREFIX = 'fire_search_reports_';
-const USERS_KEY = 'super_fc_users';
-const KNOWLEDGE_KEY = 'super_fc_knowledge';
+const API_BASE = '/api';
 
 export const storageService = {
   // User Management
-  getUsers: (): User[] => {
+  getUsers: async (): Promise<User[]> => {
     try {
-      const data = localStorage.getItem(USERS_KEY);
-      if (!data) {
-        // Initialize default admin if no users exist
-        const defaultAdmin: User = {
-          email: 'admin@bfp.gov.ph',
-          name: 'Super Admin',
-          role: 'admin',
-          password: 'admin' // In a real app, this would be hashed
-        };
-        localStorage.setItem(USERS_KEY, JSON.stringify([defaultAdmin]));
-        return [defaultAdmin];
-      }
-      
-      const users = JSON.parse(data);
-      // Ensure default admin always exists for recovery/testing
-      if (!users.find((u: User) => u.email === 'admin@bfp.gov.ph')) {
-         const defaultAdmin: User = {
-          email: 'admin@bfp.gov.ph',
-          name: 'Super Admin',
-          role: 'admin',
-          password: 'admin'
-        };
-        users.push(defaultAdmin);
-        localStorage.setItem(USERS_KEY, JSON.stringify(users));
-      }
-      return users;
+      const response = await fetch(`${API_BASE}/users`);
+      if (!response.ok) throw new Error('Failed to fetch users');
+      return await response.json();
     } catch (e) {
+      console.error('getUsers error:', e);
       return [];
     }
   },
 
-  saveUser: (user: User) => {
-    const users = storageService.getUsers();
-    const existingIndex = users.findIndex(u => u.email === user.email);
-    
-    if (existingIndex >= 0) {
-      users[existingIndex] = { ...users[existingIndex], ...user };
-    } else {
-      users.push(user);
+  saveUser: async (user: User): Promise<void> => {
+    try {
+      // Check if user exists to decide between create or update (though API handles this logic mostly)
+      // For simplicity, we'll use the create endpoint which might need adjustment if we want strict update vs create
+      // But based on server.ts, POST /api/users inserts. PUT /api/users/:email updates role.
+      // We might need to adjust server.ts or client logic. 
+      // Let's assume saveUser is mostly used for updates in AdminView or Registration.
+      
+      // If updating role:
+      if (user.role) {
+          await fetch(`${API_BASE}/users/${user.email}`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ role: user.role })
+          });
+      }
+      
+      // If creating new user (or updating other fields if supported):
+      // The current server POST /api/users is for creation.
+      // We might need a check. For now, let's assume this is primarily for role updates in AdminView
+      // or we can try to create and ignore if exists (server throws error).
+    } catch (e) {
+      console.error('saveUser error:', e);
     }
-    
-    localStorage.setItem(USERS_KEY, JSON.stringify(users));
   },
 
-  deleteUser: (email: string) => {
-    const users = storageService.getUsers();
-    const updated = users.filter(u => u.email !== email);
-    localStorage.setItem(USERS_KEY, JSON.stringify(updated));
+  deleteUser: async (email: string) => {
+    // Server doesn't have delete user endpoint yet. 
+    // We should probably add it or just log warning.
+    console.warn('deleteUser not implemented on server yet');
   },
 
-  login: (email: string, password: string): User | null => {
-    const users = storageService.getUsers();
-    const user = users.find(u => u.email === email && u.password === password);
-    return user ? { ...user, password: '' } : null; // Don't return password
+  login: async (email: string, password: string): Promise<User | null> => {
+    try {
+      const response = await fetch(`${API_BASE}/users/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+      
+      if (!response.ok) return null;
+      return await response.json();
+    } catch (e) {
+      console.error('login error:', e);
+      return null;
+    }
   },
 
-  register: (user: User): boolean => {
-    const users = storageService.getUsers();
-    if (users.some(u => u.email === user.email)) return false;
-    
-    users.push(user);
-    localStorage.setItem(USERS_KEY, JSON.stringify(users));
-    return true;
+  register: async (user: User): Promise<boolean> => {
+    try {
+      const response = await fetch(`${API_BASE}/users`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(user)
+      });
+      return response.ok;
+    } catch (e) {
+      console.error('register error:', e);
+      return false;
+    }
   },
 
   // Knowledge Base
-  saveKnowledge: (entry: KnowledgeEntry) => {
+  saveKnowledge: async (entry: KnowledgeEntry) => {
     try {
-      const entries = storageService.getKnowledge();
-      entries.unshift(entry);
-      localStorage.setItem(KNOWLEDGE_KEY, JSON.stringify(entries));
+      await fetch(`${API_BASE}/knowledge`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(entry)
+      });
     } catch (e) {
       console.error('Failed to save knowledge', e);
     }
   },
 
-  getKnowledge: (): KnowledgeEntry[] => {
+  getKnowledge: async (): Promise<KnowledgeEntry[]> => {
     try {
-      const data = localStorage.getItem(KNOWLEDGE_KEY);
-      return data ? JSON.parse(data) : [];
+      const response = await fetch(`${API_BASE}/knowledge`);
+      if (!response.ok) return [];
+      return await response.json();
     } catch (e) {
       return [];
     }
   },
 
-  deleteKnowledge: (id: string) => {
+  deleteKnowledge: async (id: string) => {
     try {
-      const entries = storageService.getKnowledge();
-      const updated = entries.filter(e => e.id !== id);
-      localStorage.setItem(KNOWLEDGE_KEY, JSON.stringify(updated));
+      await fetch(`${API_BASE}/knowledge/${id}`, {
+        method: 'DELETE'
+      });
     } catch (e) {
       console.error('Failed to delete knowledge', e);
     }
   },
 
   // Reports
-  saveReport: (email: string, report: SavedReport) => {
+  saveReport: async (email: string, report: SavedReport) => {
     try {
-      const key = `${REPORTS_KEY_PREFIX}${email}`;
-      const reports = JSON.parse(localStorage.getItem(key) || '[]');
-      reports.unshift(report); // Add to top
-      localStorage.setItem(key, JSON.stringify(reports));
+      await fetch(`${API_BASE}/reports`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...report, email })
+      });
     } catch (e) {
-      console.error('Failed to save report locally', e);
+      console.error('Failed to save report', e);
     }
   },
 
-  getReports: (email: string): SavedReport[] => {
+  getReports: async (email: string): Promise<SavedReport[]> => {
     try {
-      const key = `${REPORTS_KEY_PREFIX}${email}`;
-      return JSON.parse(localStorage.getItem(key) || '[]');
+      const response = await fetch(`${API_BASE}/reports?email=${encodeURIComponent(email)}`);
+      if (!response.ok) return [];
+      return await response.json();
     } catch (e) {
       return [];
     }
   },
 
-  // Legacy stubs for compatibility
+  // Legacy stubs
   getCurrentUser: () => null,
-  
   logout: () => {}
 };

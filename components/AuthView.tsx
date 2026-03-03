@@ -18,12 +18,12 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin }) => {
   });
   const [error, setError] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
     if (isLogin) {
-      const user = storageService.login(formData.email, formData.password);
+      const user = await storageService.login(formData.email, formData.password);
       if (user) {
         onLogin(user);
       } else {
@@ -35,7 +35,7 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin }) => {
         return;
       }
       
-      const success = storageService.register({
+      const success = await storageService.register({
         email: formData.email,
         password: formData.password,
         name: formData.name,
@@ -44,7 +44,7 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin }) => {
 
       if (success) {
         // Auto login after register
-        const user = storageService.login(formData.email, formData.password);
+        const user = await storageService.login(formData.email, formData.password);
         if (user) onLogin(user);
       } else {
         setError('REGISTRATION FAILED: Email already exists');

@@ -17,16 +17,19 @@ const AdminView: React.FC = () => {
   const [editingUser, setEditingUser] = useState<string | null>(null);
 
   useEffect(() => {
-    setKnowledgeEntries(storageService.getKnowledge());
-    setUsers(storageService.getUsers());
+    const fetchData = async () => {
+      setKnowledgeEntries(await storageService.getKnowledge());
+      setUsers(await storageService.getUsers());
+    };
+    fetchData();
   }, []);
 
-  const handleUpdateRole = (email: string, newRole: UserRole) => {
+  const handleUpdateRole = async (email: string, newRole: UserRole) => {
     const user = users.find(u => u.email === email);
     if (user) {
       const updatedUser = { ...user, role: newRole };
-      storageService.saveUser(updatedUser);
-      setUsers(storageService.getUsers());
+      await storageService.saveUser(updatedUser);
+      setUsers(await storageService.getUsers());
       setEditingUser(null);
     }
   };
@@ -62,7 +65,7 @@ const AdminView: React.FC = () => {
       }
       
       if (Array.isArray(extractedData)) {
-        extractedData.forEach(item => {
+        for (const item of extractedData) {
           const entry: KnowledgeEntry = {
             id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
             timestamp: Date.now(),
@@ -70,9 +73,9 @@ const AdminView: React.FC = () => {
             content: item.content || "",
             category: item.category || "provision"
           };
-          storageService.saveKnowledge(entry);
-        });
-        setKnowledgeEntries(storageService.getKnowledge());
+          await storageService.saveKnowledge(entry);
+        }
+        setKnowledgeEntries(await storageService.getKnowledge());
         alert(`Successfully extracted ${extractedData.length} entries from ${file.name}`);
       }
     } catch (error) {
@@ -85,7 +88,7 @@ const AdminView: React.FC = () => {
     }
   };
 
-  const handleSaveEntry = () => {
+  const handleSaveEntry = async () => {
     if (!newEntry.title || !newEntry.content) return;
 
     const entry: KnowledgeEntry = {
@@ -94,20 +97,20 @@ const AdminView: React.FC = () => {
       ...newEntry
     };
 
-    storageService.saveKnowledge(entry);
-    setKnowledgeEntries(storageService.getKnowledge());
+    await storageService.saveKnowledge(entry);
+    setKnowledgeEntries(await storageService.getKnowledge());
     setNewEntry({ title: '', content: '', category: 'provision' });
   };
 
-  const handleDeleteEntry = (id: string) => {
-    storageService.deleteKnowledge(id);
-    setKnowledgeEntries(storageService.getKnowledge());
+  const handleDeleteEntry = async (id: string) => {
+    await storageService.deleteKnowledge(id);
+    setKnowledgeEntries(await storageService.getKnowledge());
   };
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-6xl">
       <div className="glass-panel rounded-xl overflow-hidden border border-glass shadow-2xl">
-        <div className="p-6 border-b border-glass bg-glass/50 flex items-center justify-between">
+        <div className="p-4 md:p-6 border-b border-glass bg-glass/50 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="h-10 w-10 bg-purple-500/10 border border-purple-500/30 rounded-lg flex items-center justify-center shadow-[0_0_15px_rgba(168,85,247,0.2)]">
               <Shield className="w-6 h-6 text-purple-400" />
@@ -118,10 +121,10 @@ const AdminView: React.FC = () => {
             </div>
           </div>
           
-          <div className="flex bg-obsidian/50 p-1 rounded-lg border border-glass">
+          <div className="w-full md:w-auto grid grid-cols-3 md:flex bg-obsidian/50 p-1 rounded-lg border border-glass gap-1">
             <button
               onClick={() => setActiveTab('dashboard')}
-              className={`px-4 py-2 rounded-md text-xs font-display font-bold uppercase tracking-wider transition-all ${
+              className={`px-2 md:px-4 py-2 rounded-md text-[10px] md:text-xs font-display font-bold uppercase tracking-wider transition-all text-center ${
                 activeTab === 'dashboard' 
                   ? 'bg-cobalt/20 text-cobalt shadow-[0_0_10px_rgba(0,242,255,0.1)]' 
                   : 'text-muted hover:text-white'
@@ -131,34 +134,30 @@ const AdminView: React.FC = () => {
             </button>
             <button
               onClick={() => setActiveTab('training')}
-              className={`px-4 py-2 rounded-md text-xs font-display font-bold uppercase tracking-wider transition-all ${
+              className={`px-2 md:px-4 py-2 rounded-md text-[10px] md:text-xs font-display font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${
                 activeTab === 'training' 
                   ? 'bg-cobalt/20 text-cobalt shadow-[0_0_10px_rgba(0,242,255,0.1)]' 
                   : 'text-muted hover:text-white'
               }`}
             >
-              <div className="flex items-center gap-2">
-                <Database className="w-3 h-3" />
-                AI Training
-              </div>
+              <Database className="w-3 h-3 hidden sm:block" />
+              AI Training
             </button>
             <button
               onClick={() => setActiveTab('users')}
-              className={`px-4 py-2 rounded-md text-xs font-display font-bold uppercase tracking-wider transition-all ${
+              className={`px-2 md:px-4 py-2 rounded-md text-[10px] md:text-xs font-display font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${
                 activeTab === 'users' 
                   ? 'bg-cobalt/20 text-cobalt shadow-[0_0_10px_rgba(0,242,255,0.1)]' 
                   : 'text-muted hover:text-white'
               }`}
             >
-              <div className="flex items-center gap-2">
-                <Users className="w-3 h-3" />
-                User Mgmt
-              </div>
+              <Users className="w-3 h-3 hidden sm:block" />
+              User Mgmt
             </button>
           </div>
         </div>
 
-        <div className="p-6">
+        <div className="p-4 md:p-6">
           {activeTab === 'dashboard' ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="glass-panel p-6 rounded-lg border border-glass">
@@ -246,14 +245,14 @@ const AdminView: React.FC = () => {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               {/* Training Form */}
               <div className="lg:col-span-1 space-y-6">
-                <div className="glass-panel p-6 rounded-xl border border-glass sticky top-24">
+                <div className="glass-panel p-4 md:p-6 rounded-xl border border-glass sticky top-24">
                   <h3 className="text-sm font-display text-white mb-4 flex items-center gap-2 uppercase tracking-wide">
                     <Plus className="w-4 h-4 text-cobalt" />
                     Add Knowledge
                   </h3>
                   
                   <div className="space-y-4">
-                    <div className="border-2 border-dashed border-glass rounded-lg p-6 text-center hover:bg-glass/50 transition-colors relative group">
+                    <div className="border-2 border-dashed border-glass rounded-lg p-4 md:p-6 text-center hover:bg-glass/50 transition-colors relative group">
                       <input 
                         type="file" 
                         accept=".txt,.md,.json,.csv,.pdf,.docx"
@@ -333,7 +332,7 @@ const AdminView: React.FC = () => {
 
               {/* Knowledge List */}
               <div className="lg:col-span-2">
-                <div className="glass-panel p-6 rounded-xl border border-glass">
+                <div className="glass-panel p-4 md:p-6 rounded-xl border border-glass">
                   <h3 className="text-sm font-display text-white mb-6 flex items-center gap-2 uppercase tracking-wide">
                     <BookOpen className="w-4 h-4 text-tangerine" />
                     Active Neural Pathways

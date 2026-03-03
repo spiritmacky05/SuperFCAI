@@ -8,6 +8,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 import pg from 'pg';
+import Database from 'better-sqlite3';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -16,6 +17,126 @@ dotenv.config();
 
 console.log('Starting server initialization...');
 
+// Database Interface
+interface DB {
+  query(sql: string, params?: any[]): Promise<any>;
+  run(sql: string, params?: any[]): Promise<any>;
+}
+
+// SQLite Implementation
+class SQLiteDB implements DB {
+  private db: any;
+  constructor() {
+    this.db = new Database('database.sqlite');
+    this.init();
+  }
+
+  init() {
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS users (
+        email TEXT PRIMARY KEY,
+        name TEXT,
+        role TEXT,
+        password TEXT
+      );
+      CREATE TABLE IF NOT EXISTS reports (
+        id TEXT PRIMARY KEY,
+        email TEXT,
+        timestamp INTEGER,
+        params TEXT,
+        result TEXT
+      );
+      CREATE TABLE IF NOT EXISTS knowledge (
+        id TEXT PRIMARY KEY,
+        timestamp INTEGER,
+        title TEXT,
+        content TEXT,
+        category TEXT
+      );
+    `);
+    
+    // Seed default admin if not exists
+    const admin = this.db.prepare('SELECT * FROM users WHERE email = ?').get('admin@bfp.gov.ph');
+    if (!admin) {
+      this.db.prepare('INSERT INTO users (email, name, role, password) VALUES (?, ?, ?, ?)').run(
+        'admin@bfp.gov.ph', 'Super Admin', 'admin', 'admin'
+      );
+    }
+  }
+
+  async query(sql: string, params: any[] = []) {
+    return this.db.prepare(sql).all(...params);
+  }
+
+  async run(sql: string, params: any[] = []) {
+    return this.db.prepare(sql).run(...params);
+  }
+}
+
+// Postgres Implementation
+class PostgresDB implements DB {
+  private pool: pg.Pool;
+  constructor(connectionString: string) {
+    this.pool = new pg.Pool({
+      connectionString,
+      ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+    });
+    this.init();
+  }
+
+  async init() {
+    try {
+      await this.pool.query(`
+        CREATE TABLE IF NOT EXISTS users (
+          email TEXT PRIMARY KEY,
+          name TEXT,
+          role TEXT,
+          password TEXT
+        );
+        CREATE TABLE IF NOT EXISTS reports (
+          id TEXT PRIMARY KEY,
+          email TEXT,
+          timestamp BIGINT,
+          params TEXT,
+          result TEXT
+        );
+        CREATE TABLE IF NOT EXISTS knowledge (
+          id TEXT PRIMARY KEY,
+          timestamp BIGINT,
+          title TEXT,
+          content TEXT,
+          category TEXT
+        );
+      `);
+      
+      // Seed default admin
+      const res = await this.pool.query('SELECT * FROM users WHERE email = $1', ['admin@bfp.gov.ph']);
+      if (res.rows.length === 0) {
+        await this.pool.query('INSERT INTO users (email, name, role, password) VALUES ($1, $2, $3, $4)',
+          ['admin@bfp.gov.ph', 'Super Admin', 'admin', 'admin']
+        );
+      }
+      console.log('PostgreSQL initialized');
+    } catch (err) {
+      console.error('Failed to init Postgres:', err);
+    }
+  }
+
+  async query(sql: string, params: any[] = []) {
+    // Convert ? to $1, $2, etc. for Postgres compatibility
+    let i = 1;
+    const pgSql = sql.replace(/\?/g, () => `$${i++}`);
+    const res = await this.pool.query(pgSql, params);
+    return res.rows;
+  }
+
+  async run(sql: string, params: any[] = []) {
+    let i = 1;
+    const pgSql = sql.replace(/\?/g, () => `$${i++}`);
+    return this.pool.query(pgSql, params);
+  }
+}
+
 async function createServer() {
   try {
     const app = express();
@@ -23,22 +144,125 @@ async function createServer() {
     console.log(`Configured PORT: ${PORT}`);
 
     app.use(cors());
+    app.use(express.json());
 
-    // PostgreSQL Connection
-    let dbPool: pg.Pool | null = null;
+    // Database Connection
+    let db: DB;
     if (process.env.DATABASE_URL) {
-      try {
-        dbPool = new pg.Pool({
-          connectionString: process.env.DATABASE_URL,
-          ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
-        });
-        console.log('PostgreSQL connection pool initialized');
-      } catch (err) {
-        console.error('Failed to initialize PostgreSQL pool:', err);
-      }
+      console.log('Using PostgreSQL database');
+      db = new PostgresDB(process.env.DATABASE_URL);
     } else {
-      console.warn('DATABASE_URL not set. PostgreSQL features disabled.');
+      console.log('Using SQLite database (local)');
+      db = new SQLiteDB();
     }
+
+    // --- API Routes ---
+
+    // Users
+    app.get('/api/users', async (req, res) => {
+      try {
+        const users = await db.query('SELECT * FROM users');
+        res.json(users);
+      } catch (err: any) {
+        res.status(500).json({ error: err.message });
+      }
+    });
+
+    app.post('/api/users', async (req, res) => {
+      const { email, name, role, password } = req.body;
+      try {
+        await db.run('INSERT INTO users (email, name, role, password) VALUES (?, ?, ?, ?)', [email, name, role, password]);
+        res.json({ success: true });
+      } catch (err: any) {
+        res.status(500).json({ error: err.message });
+      }
+    });
+
+    app.post('/api/users/login', async (req, res) => {
+      const { email, password } = req.body;
+      try {
+        const users = await db.query('SELECT * FROM users WHERE email = ? AND password = ?', [email, password]);
+        if (users.length > 0) {
+          const user = { ...users[0] };
+          delete user.password;
+          res.json(user);
+        } else {
+          res.status(401).json({ error: 'Invalid credentials' });
+        }
+      } catch (err: any) {
+        res.status(500).json({ error: err.message });
+      }
+    });
+
+    app.put('/api/users/:email', async (req, res) => {
+      const { role } = req.body;
+      const { email } = req.params;
+      try {
+        await db.run('UPDATE users SET role = ? WHERE email = ?', [role, email]);
+        res.json({ success: true });
+      } catch (err: any) {
+        res.status(500).json({ error: err.message });
+      }
+    });
+
+    // Reports
+    app.get('/api/reports', async (req, res) => {
+      const { email } = req.query;
+      try {
+        const reports = await db.query('SELECT * FROM reports WHERE email = ? ORDER BY timestamp DESC', [email]);
+        const parsedReports = reports.map((r: any) => ({
+          ...r,
+          params: JSON.parse(r.params)
+        }));
+        res.json(parsedReports);
+      } catch (err: any) {
+        res.status(500).json({ error: err.message });
+      }
+    });
+
+    app.post('/api/reports', async (req, res) => {
+      const { id, email, timestamp, params, result } = req.body;
+      try {
+        await db.run('INSERT INTO reports (id, email, timestamp, params, result) VALUES (?, ?, ?, ?, ?)', 
+          [id, email, timestamp, JSON.stringify(params), result]
+        );
+        res.json({ success: true });
+      } catch (err: any) {
+        res.status(500).json({ error: err.message });
+      }
+    });
+
+    // Knowledge
+    app.get('/api/knowledge', async (req, res) => {
+      try {
+        const entries = await db.query('SELECT * FROM knowledge ORDER BY timestamp DESC');
+        res.json(entries);
+      } catch (err: any) {
+        res.status(500).json({ error: err.message });
+      }
+    });
+
+    app.post('/api/knowledge', async (req, res) => {
+      const { id, timestamp, title, content, category } = req.body;
+      try {
+        await db.run('INSERT INTO knowledge (id, timestamp, title, content, category) VALUES (?, ?, ?, ?, ?)', 
+          [id, timestamp, title, content, category]
+        );
+        res.json({ success: true });
+      } catch (err: any) {
+        res.status(500).json({ error: err.message });
+      }
+    });
+
+    app.delete('/api/knowledge/:id', async (req, res) => {
+      const { id } = req.params;
+      try {
+        await db.run('DELETE FROM knowledge WHERE id = ?', [id]);
+        res.json({ success: true });
+      } catch (err: any) {
+        res.status(500).json({ error: err.message });
+      }
+    });
 
     // PayMongo Webhook
     app.post('/api/paymongo/webhook', express.raw({ type: 'application/json' }), (req, res) => {
@@ -110,7 +334,7 @@ async function createServer() {
       res.json({ 
         status: 'ok', 
         env: process.env.NODE_ENV,
-        db: !!dbPool,
+        db: !!db,
         ai: !!process.env.OPENAI_API_KEY
       });
     });
@@ -178,32 +402,20 @@ async function createServer() {
 
     // Initialize OpenAI client
     let openai: OpenAI | null = null;
-    let MODEL_NAME = 'gpt-4o';
-
     try {
       if (process.env.OPENAI_API_KEY) {
-        const apiKey = process.env.OPENAI_API_KEY;
-        const isXAI = apiKey.startsWith('xai-');
-
-        if (isXAI) {
-          console.log('Detected xAI API Key. Configuring for xAI...');
-          openai = new OpenAI({
-            apiKey: apiKey,
-            baseURL: 'https://api.x.ai/v1',
-          });
-          MODEL_NAME = 'grok-beta';
-        } else {
-          openai = new OpenAI({
-            apiKey: apiKey,
-          });
-          console.log('OpenAI initialized successfully');
-        }
+        openai = new OpenAI({
+            apiKey: process.env.OPENAI_API_KEY,
+        });
+        console.log('OpenAI initialized successfully');
       } else {
         console.warn('OPENAI_API_KEY missing. AI features will be disabled.');
       }
     } catch (error) {
       console.error('Failed to initialize OpenAI:', error);
-    } 
+    }
+
+    const MODEL_NAME = 'gpt-5.1'; 
 
     app.post('/api/generateContent', async (req, res) => {
       try {
