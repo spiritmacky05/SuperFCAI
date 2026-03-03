@@ -1,7 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import { createServer as createViteServer } from 'vite';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import OpenAI from 'openai';
 import { FIRE_CODE_CONTEXT } from './constants.ts';
 import crypto from 'crypto';
 import path from 'path';
@@ -111,7 +111,7 @@ async function createServer() {
         status: 'ok', 
         env: process.env.NODE_ENV,
         db: !!dbPool,
-        ai: !!process.env.GEMINI_API_KEY
+        ai: !!process.env.GROK_API_KEY
       });
     });
 
@@ -176,58 +176,42 @@ async function createServer() {
       }
     });
 
-    // Initialize Google Generative AI client
-    let genAI: GoogleGenerativeAI | null = null;
+    // Initialize Grok (OpenAI SDK) client
+    let openai: OpenAI | null = null;
     try {
-      if (process.env.GEMINI_API_KEY) {
-        genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-        console.log('Google Generative AI initialized successfully');
-
-        // Log available models to debug "Model not found" errors
-        fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${process.env.GEMINI_API_KEY}`)
-          .then(res => res.json())
-          .then(data => {
-            if (data.models) {
-              console.log('Available Gemini Models:', data.models.map((m: any) => m.name));
-            } else {
-              console.log('No models returned from API check:', data);
-            }
-          })
-          .catch(err => console.error('Failed to list models:', err));
-
+      if (process.env.GROK_API_KEY) {
+        openai = new OpenAI({
+            apiKey: process.env.GROK_API_KEY,
+            baseURL: 'https://api.x.ai/v1',
+        });
+        console.log('Grok (OpenAI SDK) initialized successfully');
       } else {
-        console.warn('GEMINI_API_KEY missing. AI features will be disabled.');
+        console.warn('GROK_API_KEY missing. AI features will be disabled.');
       }
     } catch (error) {
-      console.error('Failed to initialize Google Generative AI:', error);
+      console.error('Failed to initialize Grok AI:', error);
     }
 
-    // Using standard aliases for models
-    const MODEL_NAME = 'gemini-1.5-flash'; 
-    const FALLBACK_MODEL = 'gemini-1.5-pro';
+    const MODEL_NAME = 'grok-beta'; 
 
     app.post('/api/generateContent', async (req, res) => {
       try {
-        if (!genAI) {
+        if (!openai) {
           return res.status(503).json({ error: 'AI service not configured' });
         }
         const { prompt } = req.body;
         
-        let model = genAI.getGenerativeModel({ model: MODEL_NAME });
-        let result;
+        const completion = await openai.chat.completions.create({
+            model: MODEL_NAME,
+            messages: [
+                { role: "user", content: prompt }
+            ],
+        });
         
-        try {
-            result = await model.generateContent(prompt);
-        } catch (primaryError: any) {
-            console.warn(`Primary model ${MODEL_NAME} failed, trying fallback ${FALLBACK_MODEL}. Error: ${primaryError.message}`);
-            model = genAI.getGenerativeModel({ model: FALLBACK_MODEL });
-            result = await model.generateContent(prompt);
-        }
-        
-        const response = await result.response;
-        res.json({ text: response.text() || "No response generated." });
+        const text = completion.choices[0]?.message?.content || "No response generated.";
+        res.json({ text });
       } catch (error) {
-        console.error("Gen AI Error:", error);
+        console.error("Grok AI Error:", error);
         res.status(500).json({ error: 'Failed to generate content' });
       }
     });
@@ -235,7 +219,7 @@ async function createServer() {
     app.post('/api/generateFireSafetyReport', async (req, res) => {
         console.log('Received request to /api/generateFireSafetyReport');
         try {
-            if (!genAI) {
+            if (!openai) {
               console.error('AI Client is not initialized');
               return res.status(503).json({ error: 'AI service not configured' });
             }
@@ -278,58 +262,42 @@ Generate a Fire Safety Inspection Report for:
 - Number of Stories: ${params.stories}
 `;
             
-            console.log('Sending request to Gemini API...');
+            console.log('Sending request to Grok API...');
             
-            let model = genAI.getGenerativeModel({ 
+            const completion = await openai.chat.completions.create({
                 model: MODEL_NAME,
-                systemInstruction: systemInstruction
+                messages: [
+                    { role: "system", content: systemInstruction },
+                    { role: "user", content: userPrompt }
+                ],
             });
 
-            let result;
-            try {
-                result = await model.generateContent(userPrompt);
-            } catch (primaryError: any) {
-                 console.warn(`Primary model ${MODEL_NAME} failed in report gen, trying fallback ${FALLBACK_MODEL}. Error: ${primaryError.message}`);
-                 // Note: gemini-pro might not support systemInstruction in the same way depending on version, 
-                 // but the SDK handles it. However, gemini-pro is older. 
-                 // Let's try gemini-1.5-pro as fallback instead if flash fails.
-                 const BETTER_FALLBACK = 'gemini-1.5-pro';
-                 model = genAI.getGenerativeModel({ 
-                    model: BETTER_FALLBACK,
-                    systemInstruction: systemInstruction
-                 });
-                 result = await model.generateContent(userPrompt);
-            }
-
-            const response = await result.response;
+            const markdown = completion.choices[0]?.message?.content || "No response generated.";
             
-            console.log('Gemini API Response received');
-            res.json({ markdown: response.text() || "No response generated." });
+            console.log('Grok API Response received');
+            res.json({ markdown });
         } catch (error) {
-            console.error("Gen AI Error in generateFireSafetyReport:", error);
+            console.error("Grok AI Error in generateFireSafetyReport:", error);
             res.status(500).json({ error: 'Failed to generate fire safety report' });
         }
     });
 
     app.post('/api/createChatSession', async (req, res) => {
         try {
-            if (!genAI) {
+            if (!openai) {
               return res.status(503).json({ error: 'AI service not configured' });
             }
-            // In the new SDK, chat state is managed by the client or by maintaining history.
-            // Since this is a stateless API, we just acknowledge.
-            // Real chat history management would happen in /api/sendMessage
             res.json({ message: 'Chat session ready' });
 
         } catch (error) {
-            console.error("Gen AI Error:", error);
+            console.error("Grok AI Error:", error);
             res.status(500).json({ error: 'Failed to create chat session' });
         }
     });
 
     app.post('/api/sendMessage', async (req, res) => {
         try {
-            if (!genAI) {
+            if (!openai) {
               return res.status(503).json({ error: 'AI service not configured' });
             }
             const { message, history } = req.body;
@@ -338,22 +306,24 @@ Generate a Fire Safety Inspection Report for:
                 return res.status(400).json({ error: 'Message is required' });
             }
 
-            // Map history to Google Generative AI format
-            const historyContent = (history || []).map((msg: any) => ({
-              role: msg.role === 'user' ? 'user' : 'model',
-              parts: [{ text: msg.text }]
+            // Map history to OpenAI format
+            const messages = (history || []).map((msg: any) => ({
+              role: msg.role === 'user' ? 'user' : 'assistant',
+              content: msg.text
             }));
             
-            const model = genAI.getGenerativeModel({ model: MODEL_NAME });
-            const chat = model.startChat({
-              history: historyContent
+            // Add current message
+            messages.push({ role: "user", content: message });
+
+            const completion = await openai.chat.completions.create({
+                model: MODEL_NAME,
+                messages: messages,
             });
 
-            const result = await chat.sendMessage(message);
-            const response = await result.response;
-            res.json({ text: response.text() || "I couldn't generate a response." });
+            const text = completion.choices[0]?.message?.content || "I couldn't generate a response.";
+            res.json({ text });
         } catch (error: any) {
-            console.error("Gen AI Error:", error);
+            console.error("Grok AI Error:", error);
             res.status(500).json({ error: error.message || 'Failed to send message' });
         }
     });
@@ -361,7 +331,7 @@ Generate a Fire Safety Inspection Report for:
     app.post('/api/generateNTC', async (req, res) => {
         console.log('Received request to /api/generateNTC');
         try {
-            if (!genAI) {
+            if (!openai) {
               console.error('AI Client is not initialized');
               return res.status(503).json({ error: 'AI service not configured' });
             }
@@ -379,7 +349,7 @@ Context:
 - Reference: RA 9514 (Fire Code of the Philippines)
 
 Task:
-For each violation listed, provide:
+- For each violation listed, provide:
 1. The specific Section/Rule of RA 9514 that is violated.
 2. A brief explanation of why it is a violation.
 3. The required corrective action.
@@ -395,17 +365,19 @@ ${violations}
 Please generate the NTC details.
 `;
 
-            const model = genAI.getGenerativeModel({ 
+            const completion = await openai.chat.completions.create({
                 model: MODEL_NAME,
-                systemInstruction: systemInstruction
+                messages: [
+                    { role: "system", content: systemInstruction },
+                    { role: "user", content: userPrompt }
+                ],
             });
 
-            const result = await model.generateContent(userPrompt);
-            const response = await result.response;
+            const text = completion.choices[0]?.message?.content || "No response generated.";
 
-            res.json({ text: response.text() || "No response generated." });
+            res.json({ text });
         } catch (error) {
-            console.error("Gen AI Error in generateNTC:", error);
+            console.error("Grok AI Error in generateNTC:", error);
             res.status(500).json({ error: 'Failed to generate NTC' });
         }
     });
@@ -431,7 +403,7 @@ Please generate the NTC details.
       console.log(`Environment: ${process.env.NODE_ENV}`);
       console.log(`PayMongo Key Configured: ${!!process.env.PAYMONGO_SECRET_KEY}`);
       console.log(`PayMongo Webhook Secret Configured: ${!!process.env.PAYMONGO_WEBHOOK_SECRET}`);
-      console.log(`Gemini API Key Configured: ${!!process.env.GEMINI_API_KEY}`);
+      console.log(`Grok API Key Configured: ${!!process.env.GROK_API_KEY}`);
       console.log(`Database URL Configured: ${!!process.env.DATABASE_URL}`);
     });
   } catch (error) {
