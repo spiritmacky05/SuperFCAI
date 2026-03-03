@@ -185,6 +185,14 @@ async function createServer() {
             baseURL: 'https://api.x.ai/v1',
         });
         console.log('Grok (OpenAI SDK) initialized successfully');
+        
+        // Log available models to help debug
+        try {
+            const models = await openai.models.list();
+            console.log('Available Grok Models:', models.data.map((m: any) => m.id));
+        } catch (modelError) {
+            console.error('Failed to list Grok models:', modelError);
+        }
       } else {
         console.warn('GROK_API_KEY missing. AI features will be disabled.');
       }
