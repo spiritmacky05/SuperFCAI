@@ -1,4 +1,3 @@
-
 import { SavedReport, User, KnowledgeEntry } from '../types';
 
 const API_BASE = '/api';
@@ -18,45 +17,39 @@ export const storageService = {
 
   saveUser: async (user: User): Promise<void> => {
     try {
-      // Check if user exists to decide between create or update (though API handles this logic mostly)
-      // For simplicity, we'll use the create endpoint which might need adjustment if we want strict update vs create
-      // But based on server.ts, POST /api/users inserts. PUT /api/users/:email updates role.
-      // We might need to adjust server.ts or client logic. 
-      // Let's assume saveUser is mostly used for updates in AdminView or Registration.
-      
-      // If updating role:
-      if (user.role) {
-          await fetch(`${API_BASE}/users/${user.email}`, {
-              method: 'PUT',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ role: user.role })
-          });
-      }
-      
-      // If creating new user (or updating other fields if supported):
-      // The current server POST /api/users is for creation.
-      // We might need a check. For now, let's assume this is primarily for role updates in AdminView
-      // or we can try to create and ignore if exists (server throws error).
+      const response = await fetch(`${API_BASE}/users`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(user)
+      });
+      if (!response.ok) throw new Error('Failed to save user');
     } catch (e) {
       console.error('saveUser error:', e);
     }
   },
 
-  deleteUser: async (email: string) => {
-    // Server doesn't have delete user endpoint yet. 
-    // We should probably add it or just log warning.
-    console.warn('deleteUser not implemented on server yet');
+  deleteUser: async (email: string): Promise<void> => {
+    try {
+      const response = await fetch(`${API_BASE}/users/${encodeURIComponent(email)}`, {
+        method: 'DELETE'
+      });
+      if (!response.ok) throw new Error('Failed to delete user');
+    } catch (e) {
+      console.error('deleteUser error:', e);
+    }
   },
 
   login: async (email: string, password: string): Promise<User | null> => {
     try {
-      const response = await fetch(`${API_BASE}/users/login`, {
+      const response = await fetch(`${API_BASE}/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password })
       });
       
-      if (!response.ok) return null;
+      if (response.status === 401) return null;
+      if (!response.ok) throw new Error('Login failed');
+      
       return await response.json();
     } catch (e) {
       console.error('login error:', e);
@@ -71,6 +64,7 @@ export const storageService = {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(user)
       });
+      
       return response.ok;
     } catch (e) {
       console.error('register error:', e);
@@ -79,62 +73,67 @@ export const storageService = {
   },
 
   // Knowledge Base
-  saveKnowledge: async (entry: KnowledgeEntry) => {
+  saveKnowledge: async (entry: KnowledgeEntry): Promise<void> => {
     try {
-      await fetch(`${API_BASE}/knowledge`, {
+      const response = await fetch(`${API_BASE}/knowledge`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(entry)
       });
+      if (!response.ok) throw new Error('Failed to save knowledge');
     } catch (e) {
-      console.error('Failed to save knowledge', e);
+      console.error('saveKnowledge error:', e);
     }
   },
 
   getKnowledge: async (): Promise<KnowledgeEntry[]> => {
     try {
       const response = await fetch(`${API_BASE}/knowledge`);
-      if (!response.ok) return [];
+      if (!response.ok) throw new Error('Failed to fetch knowledge');
       return await response.json();
     } catch (e) {
+      console.error('getKnowledge error:', e);
       return [];
     }
   },
 
-  deleteKnowledge: async (id: string) => {
+  deleteKnowledge: async (id: string): Promise<void> => {
     try {
-      await fetch(`${API_BASE}/knowledge/${id}`, {
+      const response = await fetch(`${API_BASE}/knowledge/${encodeURIComponent(id)}`, {
         method: 'DELETE'
       });
+      if (!response.ok) throw new Error('Failed to delete knowledge');
     } catch (e) {
-      console.error('Failed to delete knowledge', e);
+      console.error('deleteKnowledge error:', e);
     }
   },
 
   // Reports
-  saveReport: async (email: string, report: SavedReport) => {
+  saveReport: async (email: string, report: SavedReport): Promise<void> => {
     try {
-      await fetch(`${API_BASE}/reports`, {
+      const response = await fetch(`${API_BASE}/reports`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...report, email })
+        body: JSON.stringify({ email, report })
       });
+      if (!response.ok) throw new Error('Failed to save report');
     } catch (e) {
-      console.error('Failed to save report', e);
+      console.error('saveReport error:', e);
     }
   },
 
   getReports: async (email: string): Promise<SavedReport[]> => {
     try {
       const response = await fetch(`${API_BASE}/reports?email=${encodeURIComponent(email)}`);
-      if (!response.ok) return [];
+      if (!response.ok) throw new Error('Failed to fetch reports');
       return await response.json();
     } catch (e) {
+      console.error('getReports error:', e);
       return [];
     }
   },
 
-  // Legacy stubs
+  // Legacy stubs for compatibility (if any remain)
   getCurrentUser: () => null,
   logout: () => {}
 };

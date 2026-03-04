@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import http from 'http';
 import { createServer as createViteServer } from 'vite';
 import OpenAI from 'openai';
 import { FIRE_CODE_CONTEXT } from './constants.ts';
@@ -62,6 +63,16 @@ class SQLiteDB implements DB {
         'admin@bfp.gov.ph', 'Super Admin', 'admin', 'admin'
       );
     }
+
+    // Seed spiritmacky05@gmail.com as super_admin
+    const superAdmin = this.db.prepare('SELECT * FROM users WHERE email = ?').get('spiritmacky05@gmail.com');
+    if (!superAdmin) {
+       this.db.prepare('INSERT INTO users (email, name, role, password) VALUES (?, ?, ?, ?)').run(
+        'spiritmacky05@gmail.com', 'Spirit Macky', 'super_admin', 'admin'
+      );
+    } else {
+       this.db.prepare('UPDATE users SET role = ? WHERE email = ?').run('super_admin', 'spiritmacky05@gmail.com');
+    }
   }
 
   async query(sql: string, params: any[] = []) {
@@ -77,9 +88,15 @@ class SQLiteDB implements DB {
 class PostgresDB implements DB {
   private pool: pg.Pool;
   constructor(connectionString: string) {
+    const isProduction = process.env.NODE_ENV === 'production';
+    // Check DATABASE_SSL env var first, otherwise default to production/remote logic
+    const useSSL = process.env.DATABASE_SSL !== undefined 
+      ? process.env.DATABASE_SSL === 'true'
+      : (isProduction || connectionString.includes('sslmode=require') || !connectionString.includes('localhost'));
+    
     this.pool = new pg.Pool({
       connectionString,
-      ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+      ssl: useSSL ? { rejectUnauthorized: false } : false
     });
     this.init();
   }
@@ -116,6 +133,16 @@ class PostgresDB implements DB {
           ['admin@bfp.gov.ph', 'Super Admin', 'admin', 'admin']
         );
       }
+
+      // Seed spiritmacky05@gmail.com as super_admin
+      const resSuper = await this.pool.query('SELECT * FROM users WHERE email = $1', ['spiritmacky05@gmail.com']);
+      if (resSuper.rows.length === 0) {
+         await this.pool.query('INSERT INTO users (email, name, role, password) VALUES ($1, $2, $3, $4)',
+          ['spiritmacky05@gmail.com', 'Spirit Macky', 'super_admin', 'admin']
+        );
+      } else {
+         await this.pool.query('UPDATE users SET role = $1 WHERE email = $2', ['super_admin', 'spiritmacky05@gmail.com']);
+      }
       console.log('PostgreSQL initialized');
     } catch (err) {
       console.error('Failed to init Postgres:', err);
@@ -142,6 +169,8 @@ async function createServer() {
     const app = express();
     const PORT = parseInt(process.env.PORT || '3000', 10);
     console.log(`Configured PORT: ${PORT}`);
+
+    const httpServer = http.createServer(app);
 
     app.use(cors());
     app.use(express.json());
@@ -171,14 +200,23 @@ async function createServer() {
     app.post('/api/users', async (req, res) => {
       const { email, name, role, password } = req.body;
       try {
-        await db.run('INSERT INTO users (email, name, role, password) VALUES (?, ?, ?, ?)', [email, name, role, password]);
+        const existing = await db.query('SELECT * FROM users WHERE email = ?', [email]);
+        if (existing.length > 0) {
+          // Update
+          await db.run('UPDATE users SET name = COALESCE(?, name), role = COALESCE(?, role), password = COALESCE(?, password) WHERE email = ?', 
+            [name, role, password, email]);
+        } else {
+          // Insert
+          await db.run('INSERT INTO users (email, name, role, password) VALUES (?, ?, ?, ?)', 
+            [email, name, role || 'free', password]);
+        }
         res.json({ success: true });
       } catch (err: any) {
         res.status(500).json({ error: err.message });
       }
     });
 
-    app.post('/api/users/login', async (req, res) => {
+    app.post('/api/login', async (req, res) => {
       const { email, password } = req.body;
       try {
         const users = await db.query('SELECT * FROM users WHERE email = ? AND password = ?', [email, password]);
@@ -205,6 +243,16 @@ async function createServer() {
       }
     });
 
+    app.delete('/api/users/:email', async (req, res) => {
+      const { email } = req.params;
+      try {
+        await db.run('DELETE FROM users WHERE email = ?', [email]);
+        res.json({ success: true });
+      } catch (err: any) {
+        res.status(500).json({ error: err.message });
+      }
+    });
+
     // Reports
     app.get('/api/reports', async (req, res) => {
       const { email } = req.query;
@@ -221,7 +269,8 @@ async function createServer() {
     });
 
     app.post('/api/reports', async (req, res) => {
-      const { id, email, timestamp, params, result } = req.body;
+      const { email, report } = req.body;
+      const { id, timestamp, params, result } = report;
       try {
         await db.run('INSERT INTO reports (id, email, timestamp, params, result) VALUES (?, ?, ?, ?, ?)', 
           [id, email, timestamp, JSON.stringify(params), result]
@@ -607,7 +656,12 @@ Please generate the NTC details.
 
     if (process.env.NODE_ENV !== 'production') {
       const vite = await createViteServer({
-        server: { middlewareMode: true },
+        server: {
+          middlewareMode: true,
+          hmr: {
+            server: httpServer
+          }
+        },
         appType: 'spa',
       });
       app.use(vite.middlewares);
@@ -621,7 +675,7 @@ Please generate the NTC details.
       });
     }
 
-    app.listen(PORT, '0.0.0.0', () => {
+    httpServer.listen(PORT, '0.0.0.0', () => {
       console.log(`Server is running on http://localhost:${PORT}`);
       console.log(`Environment: ${process.env.NODE_ENV}`);
       console.log(`PayMongo Key Configured: ${!!process.env.PAYMONGO_SECRET_KEY}`);

@@ -202,7 +202,7 @@ const App: React.FC = () => {
                   <UserIcon size={20} />
                   <span className="font-mono text-sm tracking-wider">ACCOUNT</span>
                 </button>
-                {user.role === 'admin' && (
+                {(user.role === 'admin' || user.role === 'super_admin') && (
                   <button 
                     onClick={() => handleMobileNav('admin')}
                     className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${view === 'admin' ? 'bg-purple-500/10 text-purple-400 border border-purple-500/30' : 'text-muted hover:text-white hover:bg-white/5'}`}
@@ -226,7 +226,7 @@ const App: React.FC = () => {
           </div>
         )}
 
-        {view === 'admin' && user.role === 'admin' ? (
+        {view === 'admin' && (user.role === 'admin' || user.role === 'super_admin') ? (
           <AdminView />
         ) : view === 'history' ? (
           <HistoryView 

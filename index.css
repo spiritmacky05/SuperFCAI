@@ -3,7 +3,7 @@
 
 @theme {
   --font-sans: "Roboto", ui-sans-serif, system-ui, sans-serif;
-  --font-light: "Roboto", ui-Roboto, Roboto, Roboto;
+  --font-mono: "Roboto Mono", ui-monospace, SFMono-Regular, monospace;
   --font-display: "Raleway", sans-serif;
   
   --color-obsidian: #0B0E14;

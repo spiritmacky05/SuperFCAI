@@ -28,7 +28,7 @@ export interface AiResponse {
   markdown: string;
 }
 
-export type UserRole = 'free' | 'pro' | 'admin';
+export type UserRole = 'free' | 'pro' | 'admin' | 'super_admin';
 
 export interface User {
   email: string;

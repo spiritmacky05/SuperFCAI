@@ -107,6 +107,14 @@ const AdminView: React.FC = () => {
     setKnowledgeEntries(await storageService.getKnowledge());
   };
 
+  const handleDeleteUser = async (email: string) => {
+    if (window.confirm('Are you sure you want to delete this user?')) {
+      await storageService.deleteUser(email);
+      setUsers(await storageService.getUsers());
+      setEditingUser(null);
+    }
+  };
+
   return (
     <div className="container mx-auto px-4 py-8 max-w-6xl">
       <div className="glass-panel rounded-xl overflow-hidden border border-glass shadow-2xl">
@@ -202,14 +210,17 @@ const AdminView: React.FC = () => {
                               <option value="free">FREE</option>
                               <option value="pro">PRO</option>
                               <option value="admin">ADMIN</option>
+                              <option value="super_admin">SUPER ADMIN</option>
                             </select>
                           ) : (
                             <span className={`px-2 py-1 rounded text-[10px] font-mono uppercase tracking-wider border ${
-                              user.role === 'admin' 
-                                ? 'bg-purple-900/20 text-purple-400 border-purple-500/30' 
-                                : user.role === 'pro' 
-                                  ? 'bg-cobalt/10 text-cobalt border-cobalt/30' 
-                                  : 'bg-glass text-muted border-glass'
+                              user.role === 'super_admin'
+                                ? 'bg-red-900/20 text-red-400 border-red-500/30'
+                                : user.role === 'admin' 
+                                  ? 'bg-purple-900/20 text-purple-400 border-purple-500/30' 
+                                  : user.role === 'pro' 
+                                    ? 'bg-cobalt/10 text-cobalt border-cobalt/30' 
+                                    : 'bg-glass text-muted border-glass'
                             }`}>
                               {user.role}
                             </span>
@@ -219,8 +230,16 @@ const AdminView: React.FC = () => {
                           {editingUser === user.email ? (
                             <div className="flex items-center justify-end gap-2">
                               <button 
-                                onClick={() => setEditingUser(null)}
+                                onClick={() => handleDeleteUser(user.email)}
                                 className="p-1.5 bg-red-900/20 text-red-400 rounded hover:bg-red-900/40 border border-red-500/30"
+                                title="Delete User"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                              <button 
+                                onClick={() => setEditingUser(null)}
+                                className="p-1.5 text-muted hover:text-white hover:bg-white/10 rounded transition-colors"
+                                title="Cancel"
                               >
                                 <X className="w-4 h-4" />
                               </button>

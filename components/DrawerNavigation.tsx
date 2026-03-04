@@ -58,7 +58,7 @@ const DrawerNavigation: React.FC<DrawerNavigationProps> = ({ activeView, setView
           );
         })}
 
-        {user.role === 'admin' && (
+        {(user.role === 'admin' || user.role === 'super_admin') && (
           <button
             onClick={() => setView('admin')}
             className={`w-full flex items-center justify-center lg:justify-start gap-3 px-2 lg:px-4 py-3 rounded-lg transition-all duration-300 group relative overflow-hidden ${

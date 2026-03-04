@@ -11,7 +11,8 @@
     "start": "tsx server.ts",
     "build": "vite build",
     "lint": "tsc --noEmit",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "seed": "tsx seed_db.ts"
   },
   "dependencies": {
     "@google-cloud/vertexai": "^1.10.0",
@@ -40,8 +41,6 @@
     "vite": "^6.2.0"
   },
   "devDependencies": {
-    "@types/better-sqlite3": "^7.6.13",
-    "@types/pg": "^8.18.0",
-    "vite-plugin-pwa": "^1.2.0"
+    "@types/pg": "^8.18.0"
   }
 }
