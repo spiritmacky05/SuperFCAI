@@ -92,12 +92,12 @@ class SQLiteDB implements DB {
 class PostgresDB implements DB {
   private pool: pg.Pool;
   constructor(connectionString: string) {
-    const isProduction = process.env.NODE_ENV === 'production';
-    // Check DATABASE_SSL env var first, otherwise default to production/remote logic
-    const useSSL = process.env.DATABASE_SSL !== undefined 
-      ? process.env.DATABASE_SSL === 'true'
-      : (isProduction || connectionString.includes('sslmode=require') || !connectionString.includes('localhost'));
+    // Only enable SSL if explicitly requested via env var or connection string
+    // This prevents errors when running in Docker containers (production env) that don't support SSL
+    const useSSL = process.env.DATABASE_SSL === 'true' || connectionString.includes('sslmode=require');
     
+    console.log(`Postgres SSL Enabled: ${useSSL}`);
+
     this.pool = new pg.Pool({
       connectionString,
       ssl: useSSL ? { rejectUnauthorized: false } : false
