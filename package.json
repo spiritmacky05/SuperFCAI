@@ -9,7 +9,7 @@
   "scripts": {
     "dev": "tsx server.ts",
     "start": "tsx server.ts",
-    "build": "vite build",
+    "build": "vite build --debug",
     "lint": "tsc --noEmit",
     "preview": "vite preview",
     "seed": "tsx seed_db.ts"

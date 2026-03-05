@@ -18,7 +18,8 @@ COPY . .
 
 # Build the frontend application
 ENV NODE_OPTIONS="--max-old-space-size=4096"
-RUN npm run build --verbose
+ENV VITE_CJS_IGNORE_WARNING=true
+RUN npm run build
 
 # Expose the port the app runs on
 EXPOSE 3000

@@ -22,5 +22,7 @@
 
     "allowImportingTsExtensions": true,
     "noEmit": true
-  }
+  },
+  "include": ["src", "index.tsx", "App.tsx", "types.ts", "vite.config.ts", "components/**/*", "services/**/*"],
+  "exclude": ["node_modules", "server.ts", "test_db.ts", "seed_db.ts", "dist"]
 }
