@@ -22,6 +22,7 @@ console.log('Starting server initialization...');
 interface DB {
   query(sql: string, params?: any[]): Promise<any>;
   run(sql: string, params?: any[]): Promise<any>;
+  init(): Promise<void>;
 }
 
 // SQLite Implementation
@@ -29,10 +30,9 @@ class SQLiteDB implements DB {
   private db: any;
   constructor() {
     this.db = new Database('database.sqlite');
-    this.init();
   }
 
-  init() {
+  async init() {
     this.db.exec(`
       CREATE TABLE IF NOT EXISTS users (
         email TEXT PRIMARY KEY,
@@ -62,6 +62,7 @@ class SQLiteDB implements DB {
       this.db.prepare('INSERT INTO users (email, name, role, password) VALUES (?, ?, ?, ?)').run(
         'admin@bfp.gov.ph', 'Super Admin', 'admin', 'admin'
       );
+      console.log('Seeded admin@bfp.gov.ph');
     }
 
     // Seed spiritmacky05@gmail.com as super_admin
@@ -70,9 +71,12 @@ class SQLiteDB implements DB {
        this.db.prepare('INSERT INTO users (email, name, role, password) VALUES (?, ?, ?, ?)').run(
         'spiritmacky05@gmail.com', 'Spirit Macky', 'super_admin', 'admin'
       );
+      console.log('Seeded spiritmacky05@gmail.com');
     } else {
        this.db.prepare('UPDATE users SET role = ? WHERE email = ?').run('super_admin', 'spiritmacky05@gmail.com');
+       console.log('Updated spiritmacky05@gmail.com role');
     }
+    console.log('SQLite initialized');
   }
 
   async query(sql: string, params: any[] = []) {
@@ -98,7 +102,6 @@ class PostgresDB implements DB {
       connectionString,
       ssl: useSSL ? { rejectUnauthorized: false } : false
     });
-    this.init();
   }
 
   async init() {
@@ -132,6 +135,7 @@ class PostgresDB implements DB {
         await this.pool.query('INSERT INTO users (email, name, role, password) VALUES ($1, $2, $3, $4)',
           ['admin@bfp.gov.ph', 'Super Admin', 'admin', 'admin']
         );
+        console.log('Seeded admin@bfp.gov.ph');
       }
 
       // Seed spiritmacky05@gmail.com as super_admin
@@ -140,8 +144,10 @@ class PostgresDB implements DB {
          await this.pool.query('INSERT INTO users (email, name, role, password) VALUES ($1, $2, $3, $4)',
           ['spiritmacky05@gmail.com', 'Spirit Macky', 'super_admin', 'admin']
         );
+        console.log('Seeded spiritmacky05@gmail.com');
       } else {
          await this.pool.query('UPDATE users SET role = $1 WHERE email = $2', ['super_admin', 'spiritmacky05@gmail.com']);
+         console.log('Updated spiritmacky05@gmail.com role');
       }
       console.log('PostgreSQL initialized');
     } catch (err) {
@@ -184,6 +190,9 @@ async function createServer() {
       console.log('Using SQLite database (local)');
       db = new SQLiteDB();
     }
+    
+    // Initialize DB (create tables, seed data)
+    await db.init();
 
     // --- API Routes ---
 
@@ -218,16 +227,20 @@ async function createServer() {
 
     app.post('/api/login', async (req, res) => {
       const { email, password } = req.body;
+      console.log(`Login attempt for: ${email}`);
       try {
         const users = await db.query('SELECT * FROM users WHERE email = ? AND password = ?', [email, password]);
         if (users.length > 0) {
+          console.log(`Login successful for: ${email}`);
           const user = { ...users[0] };
           delete user.password;
           res.json(user);
         } else {
+          console.log(`Login failed for: ${email}`);
           res.status(401).json({ error: 'Invalid credentials' });
         }
       } catch (err: any) {
+        console.error('Login error:', err);
         res.status(500).json({ error: err.message });
       }
     });
