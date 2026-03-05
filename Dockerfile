@@ -17,7 +17,8 @@ RUN npm install
 COPY . .
 
 # Build the frontend application
-RUN npm run build
+ENV NODE_OPTIONS="--max-old-space-size=4096"
+RUN npm run build --verbose
 
 # Expose the port the app runs on
 EXPOSE 3000
