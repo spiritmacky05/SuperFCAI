@@ -41,6 +41,7 @@
     "vite": "^6.2.0"
   },
   "devDependencies": {
-    "@types/pg": "^8.18.0"
+    "@types/pg": "^8.18.0",
+    "vite-plugin-pwa": "^1.2.0"
   }
 }

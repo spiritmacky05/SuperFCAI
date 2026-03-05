@@ -20,13 +20,18 @@ async function seedDatabase() {
   }
 
   console.log('Connecting to database...');
+  
+  const useSSL = process.env.DATABASE_SSL === 'true' || databaseUrl.includes('sslmode=require');
+  console.log(`SSL Enabled: ${useSSL}`);
+
   const pool = new pg.Pool({
     connectionString: databaseUrl,
-    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+    ssl: useSSL ? { rejectUnauthorized: false } : false
   });
 
+  let client;
   try {
-    const client = await pool.connect();
+    client = await pool.connect();
     console.log('Connected successfully.');
 
     const seedFilePath = path.join(__dirname, 'supabase_seed.sql');

@@ -91,21 +91,37 @@ class SQLiteDB implements DB {
 // Postgres Implementation
 class PostgresDB implements DB {
   private pool: pg.Pool;
+  
   constructor(connectionString: string) {
     // Only enable SSL if explicitly requested via env var or connection string
     // This prevents errors when running in Docker containers (production env) that don't support SSL
     const useSSL = process.env.DATABASE_SSL === 'true' || connectionString.includes('sslmode=require');
     
     console.log(`Postgres SSL Enabled: ${useSSL}`);
+    
+    // Log connection details (masking password)
+    try {
+      const url = new URL(connectionString);
+      console.log(`Connecting to Postgres at ${url.hostname}:${url.port}${url.pathname} (User: ${url.username})`);
+    } catch (e) {
+      console.log('Connecting to Postgres (URL parsing failed)');
+    }
 
     this.pool = new pg.Pool({
       connectionString,
-      ssl: useSSL ? { rejectUnauthorized: false } : false
+      ssl: useSSL ? { rejectUnauthorized: false } : false,
+      connectionTimeoutMillis: 5000, // 5s timeout
     });
   }
 
   async init() {
     try {
+      // Test connection first
+      console.log('Testing Postgres connection...');
+      const client = await this.pool.connect();
+      console.log('Postgres connection successful');
+      client.release();
+
       await this.pool.query(`
         CREATE TABLE IF NOT EXISTS users (
           email TEXT PRIMARY KEY,
@@ -149,9 +165,10 @@ class PostgresDB implements DB {
          await this.pool.query('UPDATE users SET role = $1 WHERE email = $2', ['super_admin', 'spiritmacky05@gmail.com']);
          console.log('Updated spiritmacky05@gmail.com role');
       }
-      console.log('PostgreSQL initialized');
+      console.log('PostgreSQL initialized successfully');
     } catch (err) {
       console.error('Failed to init Postgres:', err);
+      throw err; // Re-throw to stop server startup if DB fails
     }
   }
 
