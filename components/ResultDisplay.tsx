@@ -1,5 +1,6 @@
 import React from 'react';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { FileText, AlertTriangle, CheckCircle, Info } from 'lucide-react';
 
 interface ResultDisplayProps {
@@ -26,6 +27,7 @@ const ResultDisplay: React.FC<ResultDisplayProps> = ({ content }) => {
       
       <div className="p-6 md:p-8 font-sans text-sm leading-relaxed text-silver/90">
         <ReactMarkdown
+          remarkPlugins={[remarkGfm]}
           components={{
             h1: ({node, ...props}) => <h1 className="text-xl font-display text-cobalt mb-6 mt-2 border-b border-cobalt/30 pb-2 uppercase tracking-wider" {...props} />,
             h2: ({node, ...props}) => <h2 className="text-lg font-display text-white mb-4 mt-8 flex items-center gap-2 uppercase tracking-wide" {...props} />,

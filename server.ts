@@ -2,7 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import http from 'http';
 import { createServer as createViteServer } from 'vite';
-import OpenAI from 'openai';
+import OpenAI from "openai";
 import { FIRE_CODE_CONTEXT } from './constants.ts';
 import crypto from 'crypto';
 import path from 'path';
@@ -480,12 +480,10 @@ async function createServer() {
     });
 
     // Initialize OpenAI client
-    let openai: OpenAI | null = null;
+    let ai: OpenAI | null = null;
     try {
       if (process.env.OPENAI_API_KEY) {
-        openai = new OpenAI({
-            apiKey: process.env.OPENAI_API_KEY,
-        });
+        ai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
         console.log('OpenAI initialized successfully');
       } else {
         console.warn('OPENAI_API_KEY missing. AI features will be disabled.');
@@ -494,23 +492,21 @@ async function createServer() {
       console.error('Failed to initialize OpenAI:', error);
     }
 
-    const MODEL_NAME = 'gpt-5.1'; 
+    const MODEL_NAME = 'gpt-4o-mini'; 
 
     app.post('/api/generateContent', async (req, res) => {
       try {
-        if (!openai) {
+        if (!ai) {
           return res.status(503).json({ error: 'AI service not configured' });
         }
         const { prompt } = req.body;
         
-        const completion = await openai.chat.completions.create({
+        const response = await ai.chat.completions.create({
             model: MODEL_NAME,
-            messages: [
-                { role: "user", content: prompt }
-            ],
+            messages: [{ role: 'user', content: prompt }],
         });
         
-        const text = completion.choices[0]?.message?.content || "No response generated.";
+        const text = response.choices[0]?.message?.content || "No response generated.";
         res.json({ text });
       } catch (error) {
         console.error("OpenAI Error:", error);
@@ -521,7 +517,7 @@ async function createServer() {
     app.post('/api/generateFireSafetyReport', async (req, res) => {
         console.log('Received request to /api/generateFireSafetyReport');
         try {
-            if (!openai) {
+            if (!ai) {
               console.error('AI Client is not initialized');
               return res.status(503).json({ error: 'AI service not configured' });
             }
@@ -566,15 +562,15 @@ Generate a Fire Safety Inspection Report for:
             
             console.log('Sending request to OpenAI API...');
             
-            const completion = await openai.chat.completions.create({
+            const response = await ai.chat.completions.create({
                 model: MODEL_NAME,
                 messages: [
-                    { role: "system", content: systemInstruction },
-                    { role: "user", content: userPrompt }
+                    { role: 'system', content: systemInstruction },
+                    { role: 'user', content: userPrompt }
                 ],
             });
 
-            const markdown = completion.choices[0]?.message?.content || "No response generated.";
+            const markdown = response.choices[0]?.message?.content || "No response generated.";
             
             console.log('OpenAI API Response received');
             res.json({ markdown });
@@ -586,7 +582,7 @@ Generate a Fire Safety Inspection Report for:
 
     app.post('/api/createChatSession', async (req, res) => {
         try {
-            if (!openai) {
+            if (!ai) {
               return res.status(503).json({ error: 'AI service not configured' });
             }
             res.json({ message: 'Chat session ready' });
@@ -599,7 +595,7 @@ Generate a Fire Safety Inspection Report for:
 
     app.post('/api/sendMessage', async (req, res) => {
         try {
-            if (!openai) {
+            if (!ai) {
               return res.status(503).json({ error: 'AI service not configured' });
             }
             const { message, history } = req.body;
@@ -608,21 +604,25 @@ Generate a Fire Safety Inspection Report for:
                 return res.status(400).json({ error: 'Message is required' });
             }
 
-            // Map history to OpenAI format
-            const messages = (history || []).map((msg: any) => ({
-              role: msg.role === 'user' ? 'user' : 'assistant',
-              content: msg.text
+            // Construct chat history for OpenAI
+            const chatHistory = (history || []).map((msg: any) => ({
+                role: msg.role === 'user' ? 'user' : 'assistant',
+                content: msg.text
             }));
-            
-            // Add current message
-            messages.push({ role: "user", content: message });
 
-            const completion = await openai.chat.completions.create({
+            const messages = [
+                { role: 'system', content: "You are Super FC AI, a helpful assistant for Fire Code queries." },
+                ...chatHistory,
+                { role: 'user', content: message }
+            ];
+
+            const response = await ai.chat.completions.create({
                 model: MODEL_NAME,
-                messages: messages,
+                messages: messages as any,
             });
 
-            const text = completion.choices[0]?.message?.content || "I couldn't generate a response.";
+            const text = response.choices[0]?.message?.content || "I couldn't generate a response.";
+            
             res.json({ text });
         } catch (error: any) {
             console.error("OpenAI Error:", error);
@@ -633,7 +633,7 @@ Generate a Fire Safety Inspection Report for:
     app.post('/api/generateNTC', async (req, res) => {
         console.log('Received request to /api/generateNTC');
         try {
-            if (!openai) {
+            if (!ai) {
               console.error('AI Client is not initialized');
               return res.status(503).json({ error: 'AI service not configured' });
             }
@@ -667,15 +667,15 @@ ${violations}
 Please generate the NTC details.
 `;
 
-            const completion = await openai.chat.completions.create({
+            const response = await ai.chat.completions.create({
                 model: MODEL_NAME,
                 messages: [
-                    { role: "system", content: systemInstruction },
-                    { role: "user", content: userPrompt }
+                    { role: 'system', content: systemInstruction },
+                    { role: 'user', content: userPrompt }
                 ],
             });
 
-            const text = completion.choices[0]?.message?.content || "No response generated.";
+            const text = response.choices[0]?.message?.content || "No response generated.";
 
             res.json({ text });
         } catch (error) {

@@ -31,6 +31,17 @@ if [ ! -f .env ]; then
     exit 1
 fi
 
+# Check if GEMINI_API_KEY is in .env
+if ! grep -q "GEMINI_API_KEY" .env; then
+    echo "GEMINI_API_KEY not found in .env. Appending it..."
+    echo "" >> .env
+    echo "# Gemini API Key (Required for AI features)" >> .env
+    echo "GEMINI_API_KEY=" >> .env
+    echo "Added GEMINI_API_KEY to .env. Please edit .env to add your key."
+    echo "Run: nano .env"
+    exit 1
+fi
+
 # Pull latest changes (optional, if using git)
 # git pull origin main
 
