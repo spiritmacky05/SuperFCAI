@@ -10,6 +10,9 @@ WORKDIR /app
 # Copy package files first for better caching
 COPY package*.json ./
 
+# Force development environment to ensure devDependencies are installed
+ENV NODE_ENV=development
+
 # Install dependencies
 RUN npm install
 
@@ -19,7 +22,7 @@ COPY . .
 # Build the frontend application
 ENV NODE_OPTIONS="--max-old-space-size=512"
 ENV VITE_CJS_IGNORE_WARNING=true
-RUN npm run build
+RUN npm run build > build.log 2>&1 || (cat build.log && exit 1)
 
 # Expose the port the app runs on
 EXPOSE 3000
