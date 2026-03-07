@@ -17,7 +17,7 @@ RUN npm install
 COPY . .
 
 # Build the frontend application
-ENV NODE_OPTIONS="--max-old-space-size=4096"
+ENV NODE_OPTIONS="--max-old-space-size=512"
 ENV VITE_CJS_IGNORE_WARNING=true
 RUN npm run build
 
