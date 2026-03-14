@@ -2,19 +2,19 @@ import express from 'express';
 import cors from 'cors';
 import http from 'http';
 import { createServer as createViteServer } from 'vite';
-import OpenAI from "openai";
+import { GoogleGenAI } from "@google/genai";
 import { FIRE_CODE_CONTEXT } from './constants.ts';
 import crypto from 'crypto';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
-import pg from 'pg';
 import Database from 'better-sqlite3';
+import nodemailer from 'nodemailer';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-dotenv.config();
+dotenv.config({ override: true });
 
 console.log('Starting server initialization...');
 
@@ -54,13 +54,38 @@ class SQLiteDB implements DB {
         content TEXT,
         category TEXT
       );
+      CREATE TABLE IF NOT EXISTS error_reports (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_email TEXT,
+        cited_error TEXT,
+        actual_correction TEXT,
+        status TEXT DEFAULT 'pending',
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      );
     `);
+
+    // Add new columns to users table if they don't exist
+    try {
+      this.db.exec('ALTER TABLE users ADD COLUMN bfp_id_url TEXT');
+    } catch (e) {
+      // Column might already exist
+    }
+    try {
+      this.db.exec('ALTER TABLE users ADD COLUMN status TEXT DEFAULT "approved"');
+    } catch (e) {
+      // Column might already exist
+    }
+    try {
+      this.db.exec('ALTER TABLE users ADD COLUMN bfp_account_number TEXT');
+    } catch (e) {
+      // Column might already exist
+    }
     
     // Seed default admin if not exists
     const admin = this.db.prepare('SELECT * FROM users WHERE email = ?').get('admin@bfp.gov.ph');
     if (!admin) {
-      this.db.prepare('INSERT INTO users (email, name, role, password) VALUES (?, ?, ?, ?)').run(
-        'admin@bfp.gov.ph', 'Super Admin', 'admin', 'admin'
+      this.db.prepare('INSERT INTO users (email, name, role, password, status) VALUES (?, ?, ?, ?, ?)').run(
+        'admin@bfp.gov.ph', 'Super Admin', 'admin', 'admin', 'approved'
       );
       console.log('Seeded admin@bfp.gov.ph');
     }
@@ -68,13 +93,13 @@ class SQLiteDB implements DB {
     // Seed spiritmacky05@gmail.com as super_admin
     const superAdmin = this.db.prepare('SELECT * FROM users WHERE email = ?').get('spiritmacky05@gmail.com');
     if (!superAdmin) {
-       this.db.prepare('INSERT INTO users (email, name, role, password) VALUES (?, ?, ?, ?)').run(
-        'spiritmacky05@gmail.com', 'Spirit Macky', 'super_admin', 'admin'
+       this.db.prepare('INSERT INTO users (email, name, role, password, status) VALUES (?, ?, ?, ?, ?)').run(
+        'spiritmacky05@gmail.com', 'Spirit Macky', 'super_admin', 'admin', 'approved'
       );
       console.log('Seeded spiritmacky05@gmail.com');
     } else {
-       this.db.prepare('UPDATE users SET role = ? WHERE email = ?').run('super_admin', 'spiritmacky05@gmail.com');
-       console.log('Updated spiritmacky05@gmail.com role');
+       this.db.prepare('UPDATE users SET role = ?, status = ?, password = ? WHERE email = ?').run('super_admin', 'approved', 'admin', 'spiritmacky05@gmail.com');
+       console.log('Updated spiritmacky05@gmail.com role, status, and password');
     }
     console.log('SQLite initialized');
   }
@@ -88,105 +113,6 @@ class SQLiteDB implements DB {
   }
 }
 
-// Postgres Implementation
-class PostgresDB implements DB {
-  private pool: pg.Pool;
-  
-  constructor(connectionString: string) {
-    // Only enable SSL if explicitly requested via env var or connection string
-    // This prevents errors when running in Docker containers (production env) that don't support SSL
-    const useSSL = process.env.DATABASE_SSL === 'true' || connectionString.includes('sslmode=require');
-    
-    console.log(`Postgres SSL Enabled: ${useSSL}`);
-    
-    // Log connection details (masking password)
-    try {
-      const url = new URL(connectionString);
-      console.log(`Connecting to Postgres at ${url.hostname}:${url.port}${url.pathname} (User: ${url.username})`);
-    } catch (e) {
-      console.log('Connecting to Postgres (URL parsing failed)');
-    }
-
-    this.pool = new pg.Pool({
-      connectionString,
-      ssl: useSSL ? { rejectUnauthorized: false } : false,
-      connectionTimeoutMillis: 5000, // 5s timeout
-    });
-  }
-
-  async init() {
-    try {
-      // Test connection first
-      console.log('Testing Postgres connection...');
-      const client = await this.pool.connect();
-      console.log('Postgres connection successful');
-      client.release();
-
-      await this.pool.query(`
-        CREATE TABLE IF NOT EXISTS users (
-          email TEXT PRIMARY KEY,
-          name TEXT,
-          role TEXT,
-          password TEXT
-        );
-        CREATE TABLE IF NOT EXISTS reports (
-          id TEXT PRIMARY KEY,
-          email TEXT,
-          timestamp BIGINT,
-          params TEXT,
-          result TEXT
-        );
-        CREATE TABLE IF NOT EXISTS knowledge (
-          id TEXT PRIMARY KEY,
-          timestamp BIGINT,
-          title TEXT,
-          content TEXT,
-          category TEXT
-        );
-      `);
-      
-      // Seed default admin
-      const res = await this.pool.query('SELECT * FROM users WHERE email = $1', ['admin@bfp.gov.ph']);
-      if (res.rows.length === 0) {
-        await this.pool.query('INSERT INTO users (email, name, role, password) VALUES ($1, $2, $3, $4)',
-          ['admin@bfp.gov.ph', 'Super Admin', 'admin', 'admin']
-        );
-        console.log('Seeded admin@bfp.gov.ph');
-      }
-
-      // Seed spiritmacky05@gmail.com as super_admin
-      const resSuper = await this.pool.query('SELECT * FROM users WHERE email = $1', ['spiritmacky05@gmail.com']);
-      if (resSuper.rows.length === 0) {
-         await this.pool.query('INSERT INTO users (email, name, role, password) VALUES ($1, $2, $3, $4)',
-          ['spiritmacky05@gmail.com', 'Spirit Macky', 'super_admin', 'admin']
-        );
-        console.log('Seeded spiritmacky05@gmail.com');
-      } else {
-         await this.pool.query('UPDATE users SET role = $1 WHERE email = $2', ['super_admin', 'spiritmacky05@gmail.com']);
-         console.log('Updated spiritmacky05@gmail.com role');
-      }
-      console.log('PostgreSQL initialized successfully');
-    } catch (err) {
-      console.error('Failed to init Postgres:', err);
-      throw err; // Re-throw to stop server startup if DB fails
-    }
-  }
-
-  async query(sql: string, params: any[] = []) {
-    // Convert ? to $1, $2, etc. for Postgres compatibility
-    let i = 1;
-    const pgSql = sql.replace(/\?/g, () => `$${i++}`);
-    const res = await this.pool.query(pgSql, params);
-    return res.rows;
-  }
-
-  async run(sql: string, params: any[] = []) {
-    let i = 1;
-    const pgSql = sql.replace(/\?/g, () => `$${i++}`);
-    return this.pool.query(pgSql, params);
-  }
-}
-
 async function createServer() {
   try {
     const app = express();
@@ -196,20 +122,25 @@ async function createServer() {
     const httpServer = http.createServer(app);
 
     app.use(cors());
-    app.use(express.json());
+    app.use(express.json({ limit: '50mb' }));
 
     // Database Connection
-    let db: DB;
-    if (process.env.DATABASE_URL) {
-      console.log('Using PostgreSQL database');
-      db = new PostgresDB(process.env.DATABASE_URL);
-    } else {
-      console.log('Using SQLite database (local)');
-      db = new SQLiteDB();
-    }
+    console.log('Using SQLite database (local)');
+    let db: DB = new SQLiteDB();
     
     // Initialize DB (create tables, seed data)
     await db.init();
+
+    const getKnowledgeContext = async () => {
+      try {
+        const entries = await db.query('SELECT * FROM knowledge');
+        if (!entries || entries.length === 0) return 'No additional local training data available.';
+        return entries.map((e: any) => `--- ${e.title} (${e.category}) ---\n${e.content}`).join('\n\n');
+      } catch (e) {
+        console.error('Error fetching knowledge context:', e);
+        return '';
+      }
+    };
 
     // --- API Routes ---
 
@@ -224,17 +155,17 @@ async function createServer() {
     });
 
     app.post('/api/users', async (req, res) => {
-      const { email, name, role, password } = req.body;
+      const { email, name, role, password, bfp_id_url, status, bfp_account_number } = req.body;
       try {
         const existing = await db.query('SELECT * FROM users WHERE email = ?', [email]);
         if (existing.length > 0) {
           // Update
-          await db.run('UPDATE users SET name = COALESCE(?, name), role = COALESCE(?, role), password = COALESCE(?, password) WHERE email = ?', 
-            [name, role, password, email]);
+          await db.run('UPDATE users SET name = COALESCE(?, name), role = COALESCE(?, role), password = COALESCE(?, password), bfp_id_url = COALESCE(?, bfp_id_url), status = COALESCE(?, status), bfp_account_number = COALESCE(?, bfp_account_number) WHERE email = ?', 
+            [name, role, password, bfp_id_url, status, bfp_account_number, email]);
         } else {
           // Insert
-          await db.run('INSERT INTO users (email, name, role, password) VALUES (?, ?, ?, ?)', 
-            [email, name, role || 'free', password]);
+          await db.run('INSERT INTO users (email, name, role, password, bfp_id_url, status, bfp_account_number) VALUES (?, ?, ?, ?, ?, ?, ?)', 
+            [email, name, role || 'free', password, bfp_id_url || null, status || 'pending', bfp_account_number || null]);
         }
         res.json({ success: true });
       } catch (err: any) {
@@ -248,8 +179,12 @@ async function createServer() {
       try {
         const users = await db.query('SELECT * FROM users WHERE email = ? AND password = ?', [email, password]);
         if (users.length > 0) {
-          console.log(`Login successful for: ${email}`);
           const user = { ...users[0] };
+          if (user.status === 'pending') {
+            console.log(`Login failed (pending approval) for: ${email}`);
+            return res.status(403).json({ error: 'Your account is pending approval by an administrator.' });
+          }
+          console.log(`Login successful for: ${email}`);
           delete user.password;
           res.json(user);
         } else {
@@ -263,10 +198,10 @@ async function createServer() {
     });
 
     app.put('/api/users/:email', async (req, res) => {
-      const { role } = req.body;
+      const { role, status } = req.body;
       const { email } = req.params;
       try {
-        await db.run('UPDATE users SET role = ? WHERE email = ?', [role, email]);
+        await db.run('UPDATE users SET role = COALESCE(?, role), status = COALESCE(?, status) WHERE email = ?', [role, status || 'approved', email]);
         res.json({ success: true });
       } catch (err: any) {
         res.status(500).json({ error: err.message });
@@ -337,6 +272,87 @@ async function createServer() {
       const { id } = req.params;
       try {
         await db.run('DELETE FROM knowledge WHERE id = ?', [id]);
+        res.json({ success: true });
+      } catch (err: any) {
+        res.status(500).json({ error: err.message });
+      }
+    });
+
+    // Error Reports
+    app.get('/api/error-reports', async (req, res) => {
+      try {
+        const reports = await db.query('SELECT * FROM error_reports ORDER BY created_at DESC');
+        res.json(reports);
+      } catch (err: any) {
+        res.status(500).json({ error: err.message });
+      }
+    });
+
+    app.post('/api/error-reports', async (req, res) => {
+      const { user_email, cited_error, actual_correction } = req.body;
+      try {
+        // Check how many reports the user has submitted today
+        const todayReports = await db.query(
+          "SELECT COUNT(*) as count FROM error_reports WHERE user_email = ? AND date(created_at) = date('now')",
+          [user_email]
+        );
+        
+        if (todayReports[0].count >= 3) {
+          return res.status(429).json({ error: 'You have reached the maximum limit of 3 error reports per day.' });
+        }
+
+        await db.run('INSERT INTO error_reports (user_email, cited_error, actual_correction) VALUES (?, ?, ?)', 
+          [user_email, cited_error, actual_correction]
+        );
+        
+        // Send email notification to user
+        try {
+          if (process.env.SMTP_USER && process.env.SMTP_PASS) {
+            const transporter = nodemailer.createTransport({
+              host: process.env.SMTP_HOST || 'smtp.ethereal.email',
+              port: parseInt(process.env.SMTP_PORT || '587'),
+              auth: {
+                user: process.env.SMTP_USER,
+                pass: process.env.SMTP_PASS
+              }
+            });
+            
+            await transporter.sendMail({
+              from: '"Super FC AI Admin" <admin@superfcai.tech>',
+              to: user_email,
+              subject: 'Report Received - Super FC AI',
+              text: `Hello,\n\nWe have received your report regarding an AI error.\n\nCited Error: ${cited_error}\n\nWe are evaluating your correction to feed into the AI brain so that next time this error will be corrected.\n\nThank you for helping improve Super FC AI!\n\nBest,\nSuper FC AI Admin Team`
+            });
+            console.log(`Email sent to ${user_email} for error report.`);
+          } else {
+            console.log(`Email notification skipped for ${user_email}: SMTP credentials not configured.`);
+          }
+        } catch (emailErr) {
+          console.error('Failed to send email notification:', emailErr);
+          // Don't fail the request if email fails
+        }
+
+        res.json({ success: true });
+      } catch (err: any) {
+        res.status(500).json({ error: err.message });
+      }
+    });
+
+    app.patch('/api/error-reports/:id/status', async (req, res) => {
+      const { id } = req.params;
+      const { status } = req.body;
+      try {
+        await db.run('UPDATE error_reports SET status = ? WHERE id = ?', [status, id]);
+        res.json({ success: true });
+      } catch (err: any) {
+        res.status(500).json({ error: err.message });
+      }
+    });
+
+    app.delete('/api/error-reports/:id', async (req, res) => {
+      const { id } = req.params;
+      try {
+        await db.run('DELETE FROM error_reports WHERE id = ?', [id]);
         res.json({ success: true });
       } catch (err: any) {
         res.status(500).json({ error: err.message });
@@ -414,7 +430,7 @@ async function createServer() {
         status: 'ok', 
         env: process.env.NODE_ENV,
         db: !!db,
-        ai: !!process.env.OPENAI_API_KEY
+        ai: !!process.env.GEMINI_API_KEY
       });
     });
 
@@ -444,7 +460,7 @@ async function createServer() {
                 line_items: [
                   {
                     currency: 'PHP',
-                    amount: 19900, // 199.00 PHP in centavos
+                    amount: 9900, // 99.00 PHP in centavos
                     description: 'Super FC AI Pro Subscription',
                     name: 'Pro Plan',
                     quantity: 1,
@@ -479,44 +495,40 @@ async function createServer() {
       }
     });
 
-    // Initialize OpenAI client
-    let ai: OpenAI | null = null;
-    try {
-      if (process.env.OPENAI_API_KEY) {
-        ai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-        console.log('OpenAI initialized successfully');
-      } else {
-        console.warn('OPENAI_API_KEY missing. AI features will be disabled.');
+    // Helper to get AI client
+    const getAIClient = () => {
+      if (process.env.GEMINI_API_KEY) {
+        return new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
       }
-    } catch (error) {
-      console.error('Failed to initialize OpenAI:', error);
-    }
-
-    const MODEL_NAME = 'gpt-5.0'; 
+      return null;
+    };
 
     app.post('/api/generateContent', async (req, res) => {
       try {
+        const ai = getAIClient();
         if (!ai) {
-          return res.status(503).json({ error: 'AI service not configured' });
+          return res.status(503).json({ error: 'AI service not configured. Missing GEMINI_API_KEY.' });
         }
         const { prompt } = req.body;
         
-        const response = await ai.chat.completions.create({
-            model: MODEL_NAME,
-            messages: [{ role: 'user', content: prompt }],
+        const response = await ai.models.generateContent({
+            model: 'gemini-3-flash-preview',
+            contents: prompt,
         });
         
-        const text = response.choices[0]?.message?.content || "No response generated.";
+        const text = response.text || "No response generated.";
         res.json({ text });
-      } catch (error) {
-        console.error("OpenAI Error:", error);
-        res.status(500).json({ error: 'Failed to generate content' });
+      } catch (error: any) {
+        console.error("Gemini Error:", error);
+        const errorMessage = error?.message || 'Failed to generate content';
+        res.status(500).json({ error: `AI Generation Error: ${errorMessage}` });
       }
     });
 
     app.post('/api/generateFireSafetyReport', async (req, res) => {
         console.log('Received request to /api/generateFireSafetyReport');
         try {
+            const ai = getAIClient();
             if (!ai) {
               console.error('AI Client is not initialized');
               return res.status(503).json({ error: 'AI service not configured' });
@@ -524,8 +536,7 @@ async function createServer() {
             const { params } = req.body;
             console.log('Generating report for:', JSON.stringify(params));
             
-            const getKnowledgeContext = () => ''; // Simplified for now
-            const knowledgeContext = getKnowledgeContext();
+            const knowledgeContext = await getKnowledgeContext();
 
             const systemInstruction = `
 Role:
@@ -534,10 +545,17 @@ You are Super FC AI, an intelligent Fire Code reference and inspection assistant
 Primary Function:
 Analyze the provided Fire Code context (based on RA 9514 and its RIRR) and return accurate, structured, and inspection-ready information based on the user's establishment details.
 
-Context (Your Memory Base):
+Context (Your ONLY Memory Base):
 ${FIRE_CODE_CONTEXT}
 
+ADDITIONAL TRAINING DATA (HIGH PRIORITY):
 ${knowledgeContext}
+
+STRICT ZERO-HALLUCINATION RULE:
+1. You MUST ONLY use the provided Context and Additional Training Data as your source of truth.
+2. If the exact Section, Rule number, or provision is NOT explicitly written in the provided text, you MUST state "Citation not found in training data."
+3. DO NOT invent, guess, or assume rule numbers, measurements, or penalties.
+4. Quote directly from the text where possible.
 
 Response Behavior:
 1.  **Establishment Overview**: Classify the occupancy based on the input.
@@ -558,43 +576,47 @@ Generate a Fire Safety Inspection Report for:
 - Type of Establishment: ${params.establishmentType}
 - Measurement: ${params.area} SQM
 - Number of Stories: ${params.stories}
+${params.additional_details ? `- Additional Details: ${params.additional_details}` : ''}
 `;
             
-            console.log('Sending request to OpenAI API...');
+            console.log('Sending request to Gemini API...');
             
-            const response = await ai.chat.completions.create({
-                model: MODEL_NAME,
-                messages: [
-                    { role: 'system', content: systemInstruction },
-                    { role: 'user', content: userPrompt }
-                ],
+            const response = await ai.models.generateContent({
+                model: 'gemini-3.1-pro-preview',
+                contents: userPrompt,
+                config: {
+                    systemInstruction: systemInstruction
+                }
             });
 
-            const markdown = response.choices[0]?.message?.content || "No response generated.";
+            const markdown = response.text || "No response generated.";
             
-            console.log('OpenAI API Response received');
+            console.log('Gemini API Response received');
             res.json({ markdown });
-        } catch (error) {
-            console.error("OpenAI Error in generateFireSafetyReport:", error);
-            res.status(500).json({ error: 'Failed to generate fire safety report' });
+        } catch (error: any) {
+            console.error("Gemini Error in generateFireSafetyReport:", error);
+            const errorMessage = error?.message || 'Failed to generate fire safety report';
+            res.status(500).json({ error: `AI Generation Error: ${errorMessage}` });
         }
     });
 
     app.post('/api/createChatSession', async (req, res) => {
         try {
+            const ai = getAIClient();
             if (!ai) {
               return res.status(503).json({ error: 'AI service not configured' });
             }
             res.json({ message: 'Chat session ready' });
 
         } catch (error) {
-            console.error("OpenAI Error:", error);
+            console.error("Gemini Error:", error);
             res.status(500).json({ error: 'Failed to create chat session' });
         }
     });
 
     app.post('/api/sendMessage', async (req, res) => {
         try {
+            const ai = getAIClient();
             if (!ai) {
               return res.status(503).json({ error: 'AI service not configured' });
             }
@@ -604,41 +626,57 @@ Generate a Fire Safety Inspection Report for:
                 return res.status(400).json({ error: 'Message is required' });
             }
 
-            // Construct chat history for OpenAI
+            // Construct chat history for Gemini
             const chatHistory = (history || []).map((msg: any) => ({
-                role: msg.role === 'user' ? 'user' : 'assistant',
-                content: msg.text
+                role: msg.role === 'user' ? 'user' : 'model',
+                parts: [{ text: msg.text }]
             }));
 
-            const messages = [
-                { role: 'system', content: "You are Super FC AI, a helpful assistant for Fire Code queries." },
+            const contents = [
                 ...chatHistory,
-                { role: 'user', content: message }
+                { role: 'user', parts: [{ text: message }] }
             ];
 
-            const response = await ai.chat.completions.create({
-                model: MODEL_NAME,
-                messages: messages as any,
+            const knowledgeContext = await getKnowledgeContext();
+
+            const response = await ai.models.generateContent({
+                model: 'gemini-3.1-pro-preview',
+                contents: contents,
+                config: {
+                    systemInstruction: `You are Super FC AI, a helpful assistant for Fire Code queries. 
+            
+STRICT ZERO-HALLUCINATION RULE:
+You must ONLY base your answers on the following training data and context. Do not invent or guess citations. If the answer is not in the context, say "I cannot find this in my training data."
+
+TRAINING DATA:
+${FIRE_CODE_CONTEXT}
+
+${knowledgeContext}`
+                }
             });
 
-            const text = response.choices[0]?.message?.content || "I couldn't generate a response.";
+            const text = response.text || "I couldn't generate a response.";
             
             res.json({ text });
         } catch (error: any) {
-            console.error("OpenAI Error:", error);
-            res.status(500).json({ error: error.message || 'Failed to send message' });
+            console.error("Gemini Error:", error);
+            const errorMessage = error?.message || 'Failed to send message';
+            res.status(500).json({ error: `AI Chat Error: ${errorMessage}` });
         }
     });
 
     app.post('/api/generateNTC', async (req, res) => {
         console.log('Received request to /api/generateNTC');
         try {
+            const ai = getAIClient();
             if (!ai) {
               console.error('AI Client is not initialized');
               return res.status(503).json({ error: 'AI service not configured' });
             }
             const { params, violations } = req.body;
             console.log('Generating NTC for violations length:', violations.length);
+
+            const knowledgeContext = await getKnowledgeContext();
 
             const systemInstruction = `
 Role:
@@ -648,11 +686,20 @@ Context:
 - Establishment Type: ${params.establishmentType}
 - Area: ${params.area} sqm
 - Stories: ${params.stories}
+${params.additional_details ? `- Additional Details: ${params.additional_details}` : ''}
 - Reference: RA 9514 (Fire Code of the Philippines)
+
+TRAINING DATA (STRICT SOURCE OF TRUTH):
+${FIRE_CODE_CONTEXT}
+
+${knowledgeContext}
+
+STRICT ZERO-HALLUCINATION RULE:
+You MUST ONLY use the provided Training Data to find the specific Section/Rule of RA 9514. If the exact violation citation is not found in the text, state "Citation not found in training data" instead of guessing a section number.
 
 Task:
 - For each violation listed, provide:
-1. The specific Section/Rule of RA 9514 that is violated.
+1. The specific Section/Rule of RA 9514 that is violated (ONLY if found in training data).
 2. A brief explanation of why it is a violation.
 3. The required corrective action.
 
@@ -667,20 +714,21 @@ ${violations}
 Please generate the NTC details.
 `;
 
-            const response = await ai.chat.completions.create({
-                model: MODEL_NAME,
-                messages: [
-                    { role: 'system', content: systemInstruction },
-                    { role: 'user', content: userPrompt }
-                ],
+            const response = await ai.models.generateContent({
+                model: 'gemini-3.1-pro-preview',
+                contents: userPrompt,
+                config: {
+                    systemInstruction: systemInstruction
+                }
             });
 
-            const text = response.choices[0]?.message?.content || "No response generated.";
+            const text = response.text || "No response generated.";
 
             res.json({ text });
-        } catch (error) {
-            console.error("OpenAI Error in generateNTC:", error);
-            res.status(500).json({ error: 'Failed to generate NTC' });
+        } catch (error: any) {
+            console.error("Gemini Error in generateNTC:", error);
+            const errorMessage = error?.message || 'Failed to generate NTC';
+            res.status(500).json({ error: `AI Generation Error: ${errorMessage}` });
         }
     });
 
@@ -710,7 +758,7 @@ Please generate the NTC details.
       console.log(`Environment: ${process.env.NODE_ENV}`);
       console.log(`PayMongo Key Configured: ${!!process.env.PAYMONGO_SECRET_KEY}`);
       console.log(`PayMongo Webhook Secret Configured: ${!!process.env.PAYMONGO_WEBHOOK_SECRET}`);
-      console.log(`OpenAI API Key Configured: ${!!process.env.OPENAI_API_KEY}`);
+      console.log(`Gemini API Key Configured: ${!!process.env.GEMINI_API_KEY}`);
       console.log(`Database URL Configured: ${!!process.env.DATABASE_URL}`);
     });
   } catch (error) {

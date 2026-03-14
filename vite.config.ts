@@ -19,16 +19,23 @@ export default defineConfig(({ mode }) => {
         react(),
         VitePWA({
           registerType: 'autoUpdate',
-          includeAssets: [],
+          injectRegister: null,
+          includeAssets: ['logo.png'],
           manifest: {
             name: 'Super FC AI',
             short_name: 'SuperFC',
             description: 'Super FC AI Application',
-            theme_color: '#ffffff',
-            background_color: '#ffffff',
+            theme_color: '#0B0E14',
+            background_color: '#0B0E14',
             display: 'standalone',
             start_url: '/',
             icons: [
+              {
+                src: 'logo.png',
+                sizes: 'any',
+                type: 'image/png',
+                purpose: 'any maskable'
+              },
               {
                 src: 'logo.png',
                 sizes: '192x192',
@@ -42,7 +49,7 @@ export default defineConfig(({ mode }) => {
             ]
           },
           devOptions: {
-            enabled: true
+            enabled: false
           }
         })
       ],

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { User } from '../types';
 import Logo from './Logo';
 import { storageService } from '../services/storageService';
-import { Lock, Mail, User as UserIcon, LogIn, UserPlus, Eye, EyeOff } from 'lucide-react';
+import { Lock, Mail, User as UserIcon, LogIn, UserPlus, Eye, EyeOff, Upload, Hash } from 'lucide-react';
 
 interface AuthViewProps {
   onLogin: (user: User) => void;
@@ -14,7 +14,9 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin }) => {
   const [formData, setFormData] = useState({
     email: '',
     password: '',
-    name: ''
+    name: '',
+    bfp_id_url: '',
+    bfp_account_number: ''
   });
   const [error, setError] = useState('');
 
@@ -34,21 +36,45 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin }) => {
         setError('IDENTITY REQUIRED: Name missing');
         return;
       }
+      if (!formData.bfp_id_url) {
+        setError('IDENTITY REQUIRED: BFP ID (Front) missing');
+        return;
+      }
+      if (!formData.bfp_account_number) {
+        setError('IDENTITY REQUIRED: BFP Account Number missing');
+        return;
+      }
       
       const success = await storageService.register({
         email: formData.email,
         password: formData.password,
         name: formData.name,
-        role: 'free' // Default role
+        role: 'free', // Default role
+        bfp_id_url: formData.bfp_id_url,
+        bfp_account_number: formData.bfp_account_number
       });
 
       if (success) {
-        // Auto login after register
-        const user = await storageService.login(formData.email, formData.password);
-        if (user) onLogin(user);
+        setError('REGISTRATION SUCCESSFUL: Pending admin approval');
+        setIsLogin(true);
       } else {
         setError('REGISTRATION FAILED: Email already exists');
       }
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        setError('FILE TOO LARGE: Max 5MB allowed');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFormData({ ...formData, bfp_id_url: reader.result as string });
+      };
+      reader.readAsDataURL(file);
     }
   };
 
@@ -70,20 +96,57 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin }) => {
 
         <form onSubmit={handleSubmit} className="space-y-5">
           {!isLogin && (
-            <div>
-              <label className="block text-xs font-mono text-muted mb-1 uppercase tracking-wider">Identity Name</label>
-              <div className="relative group">
-                <UserIcon className="absolute left-3 top-3 h-5 w-5 text-muted group-focus-within:text-cobalt transition-colors" />
-                <input
-                  type="text"
-                  required
-                  className="w-full pl-10 pr-4 py-3 rounded-lg glass-input focus:ring-1 focus:ring-cobalt/50 placeholder-muted/30 font-mono text-sm"
-                  placeholder="OFFICER NAME"
-                  value={formData.name}
-                  onChange={e => setFormData({...formData, name: e.target.value})}
-                />
+            <>
+              <div>
+                <label className="block text-xs font-mono text-muted mb-1 uppercase tracking-wider">RANK & FULL NAME</label>
+                <div className="relative group">
+                  <UserIcon className="absolute left-3 top-3 h-5 w-5 text-muted group-focus-within:text-cobalt transition-colors" />
+                  <input
+                    type="text"
+                    required
+                    className="w-full pl-10 pr-4 py-3 rounded-lg glass-input focus:ring-1 focus:ring-cobalt/50 placeholder-muted/30 font-mono text-sm"
+                    placeholder="OFFICER NAME"
+                    value={formData.name}
+                    onChange={e => setFormData({...formData, name: e.target.value})}
+                  />
+                </div>
               </div>
-            </div>
+
+              <div>
+                <label className="block text-xs font-mono text-muted mb-1 uppercase tracking-wider">BFP ID (Front Only)</label>
+                <div className="relative group">
+                  <Upload className="absolute left-3 top-3 h-5 w-5 text-muted group-focus-within:text-cobalt transition-colors" />
+                  <input
+                    type="file"
+                    accept="image/*"
+                    required
+                    onChange={handleFileChange}
+                    className="w-full pl-10 pr-4 py-2 rounded-lg glass-input focus:ring-1 focus:ring-cobalt/50 placeholder-muted/30 font-mono text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-cobalt/20 file:text-cobalt hover:file:bg-cobalt/30"
+                  />
+                </div>
+                {formData.bfp_id_url && (
+                  <div className="mt-2 text-xs text-emerald-400 font-mono flex items-center gap-1">
+                    <span className="block w-1.5 h-1.5 bg-emerald-500 rounded-full shadow-[0_0_5px_#10b981]"></span>
+                    ID Uploaded Successfully
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-xs font-mono text-muted mb-1 uppercase tracking-wider">BFP Account Number</label>
+                <div className="relative group">
+                  <Hash className="absolute left-3 top-3 h-5 w-5 text-muted group-focus-within:text-cobalt transition-colors" />
+                  <input
+                    type="text"
+                    required
+                    className="w-full pl-10 pr-4 py-3 rounded-lg glass-input focus:ring-1 focus:ring-cobalt/50 placeholder-muted/30 font-mono text-sm"
+                    placeholder="BFP ACCOUNT NUMBER"
+                    value={formData.bfp_account_number}
+                    onChange={e => setFormData({...formData, bfp_account_number: e.target.value})}
+                  />
+                </div>
+              </div>
+            </>
           )}
 
           <div>

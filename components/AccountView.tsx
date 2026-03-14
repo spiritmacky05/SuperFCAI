@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { User } from '../types';
-import { Shield, Zap, BarChart, Settings as SettingsIcon, CreditCard, Check } from 'lucide-react';
+import { Shield, Zap, BarChart, Settings as SettingsIcon, CreditCard, Check, AlertTriangle, Send } from 'lucide-react';
+import { useToast } from './ToastContext';
 
 interface AccountViewProps {
   user: User;
@@ -8,6 +9,10 @@ interface AccountViewProps {
 
 const AccountView: React.FC<AccountViewProps> = ({ user }) => {
   const [usageCount, setUsageCount] = useState(0);
+  const [citedError, setCitedError] = useState('');
+  const [actualCorrection, setActualCorrection] = useState('');
+  const [isSubmittingReport, setIsSubmittingReport] = useState(false);
+  const { showToast } = useToast();
 
   useEffect(() => {
     const count = localStorage.getItem('gemini_usage_count');
@@ -31,13 +36,58 @@ const AccountView: React.FC<AccountViewProps> = ({ user }) => {
       if (data.url) {
         window.location.href = data.url;
       } else {
-        alert(data.error || 'Payment gateway not configured. Please contact admin.');
+        showToast(data.error || 'Payment gateway not configured. Please contact admin.', 'error');
       }
     } catch (error) {
       console.error('Payment error:', error);
-      alert('Failed to initiate payment.');
+      showToast('Failed to initiate payment.', 'error');
     }
   };
+
+  const handleReportSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!citedError.trim() || !actualCorrection.trim()) {
+      showToast('Please provide both the cited error and the actual correction.', 'error');
+      return;
+    }
+
+    setIsSubmittingReport(true);
+    try {
+      const response = await fetch('/api/error-reports', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_email: user.email,
+          cited_error: citedError,
+          actual_correction: actualCorrection
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to submit report');
+      }
+
+      showToast('Report submitted successfully. Thank you for helping improve the AI!', 'success');
+      setCitedError('');
+      setActualCorrection('');
+    } catch (error: any) {
+      console.error('Report error:', error);
+      showToast(error.message || 'Failed to submit report. Please try again.', 'error');
+    } finally {
+      setIsSubmittingReport(false);
+    }
+  };
+
+  useEffect(() => {
+    // Check for payment success in URL parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    const success = urlParams.get('success');
+
+    if (success && user.role !== 'pro' && user.role !== 'admin' && user.role !== 'super_admin') {
+      showToast('Payment successful! Please log out and log back in to activate your Pro features.', 'success');
+    }
+  }, [user.role, showToast]);
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl animate-fade-in-up">
@@ -67,10 +117,10 @@ const AccountView: React.FC<AccountViewProps> = ({ user }) => {
           <div className="mt-6 w-full bg-glass h-2 rounded-full overflow-hidden">
             <div 
               className="bg-tangerine h-full rounded-full" 
-              style={{ width: `${Math.min(usageCount, 100)}%` }}
+              style={{ width: `${Math.min((usageCount / 25) * 100, 100)}%` }}
             ></div>
           </div>
-          <p className="text-[10px] text-right text-muted mt-1 font-mono">Monthly Limit: 50</p>
+          <p className="text-[10px] text-right text-muted mt-1 font-mono">Weekly Limit: 25</p>
         </div>
 
         {/* Profile Section */}
@@ -116,7 +166,7 @@ const AccountView: React.FC<AccountViewProps> = ({ user }) => {
                 <Zap className="text-yellow-400 fill-yellow-400" />
                 UPGRADE TO PRO
               </h3>
-              <p className="text-muted mb-6">Unlock advanced features and higher usage limits for only ₱199.00/month.</p>
+              <p className="text-muted mb-6">Unlock advanced features and higher usage limits for only 99 pesos per month. This minimal payment will help to support in the system maintenance, hosting and AI subscription.</p>
               
               <ul className="space-y-2 mb-6">
                 {[
@@ -134,16 +184,76 @@ const AccountView: React.FC<AccountViewProps> = ({ user }) => {
             </div>
 
             <div className="flex-shrink-0">
-              <button 
-                onClick={handleUpgrade}
-                className="cyber-button-primary px-8 py-4 rounded-lg flex items-center gap-3 text-obsidian font-bold text-lg shadow-[0_0_20px_rgba(0,242,255,0.3)] hover:scale-105 transition-transform"
-              >
-                <CreditCard size={20} />
-                PAY WITH GCASH
-              </button>
-              <p className="text-[10px] text-center text-muted mt-3 font-mono">SECURE PAYMENT via PayMongo</p>
+              {user.role === 'free' || user.status === 'pending' ? (
+                <>
+                  <button 
+                    onClick={handleUpgrade}
+                    className="cyber-button-primary px-8 py-4 rounded-lg flex items-center gap-3 text-obsidian font-bold text-lg shadow-[0_0_20px_rgba(0,242,255,0.3)] hover:scale-105 transition-transform"
+                  >
+                    <CreditCard size={20} />
+                    PAY WITH GCASH
+                  </button>
+                  <p className="text-[10px] text-center text-muted mt-3 font-mono">SECURE PAYMENT via PayMongo</p>
+                </>
+              ) : (
+                <div className="bg-emerald-500/20 border border-emerald-500/50 text-emerald-400 px-8 py-4 rounded-lg flex items-center gap-3 font-bold text-lg shadow-[0_0_20px_rgba(16,185,129,0.2)]">
+                  <Check size={24} />
+                  PRO ACTIVE
+                </div>
+              )}
             </div>
           </div>
+        </div>
+
+        {/* AI Calibration & Error Reporting */}
+        <div className="md:col-span-2 glass-panel p-6 rounded-xl border border-glass">
+          <h3 className="text-lg font-display text-white mb-2 flex items-center gap-2">
+            <AlertTriangle className="text-tangerine" size={20} />
+            AI CALIBRATION & ERROR REPORTING
+          </h3>
+          <p className="text-sm text-muted mb-6">
+            Help us improve Super FC AI. If you spot an error or misinformation in the generated reports, please cite the error and provide the actual correction below.
+          </p>
+
+          <form onSubmit={handleReportSubmit} className="space-y-4">
+            <div>
+              <label className="block text-xs text-muted font-mono uppercase mb-1">Cited Error</label>
+              <input 
+                type="text" 
+                value={citedError}
+                onChange={(e) => setCitedError(e.target.value)}
+                placeholder="e.g., AI stated 1.5m egress width instead of 1.12m"
+                className="w-full bg-obsidian/50 border border-glass rounded-lg px-4 py-2 text-white font-mono text-sm focus:border-cobalt outline-none transition-colors"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-muted font-mono uppercase mb-1">Actual Correction</label>
+              <textarea 
+                value={actualCorrection}
+                onChange={(e) => setActualCorrection(e.target.value)}
+                placeholder="Please provide the correct information, citing the specific section of RA 9514 if possible..."
+                className="w-full bg-obsidian/50 border border-glass rounded-lg px-4 py-3 text-white font-mono text-sm focus:border-cobalt outline-none transition-colors min-h-[120px] resize-y"
+                required
+              ></textarea>
+            </div>
+            <div className="flex justify-end pt-2">
+              <button 
+                type="submit" 
+                disabled={isSubmittingReport}
+                className="cyber-button-primary px-6 py-2 rounded-lg flex items-center gap-2 text-obsidian font-bold text-sm shadow-[0_0_15px_rgba(0,242,255,0.2)] hover:scale-105 transition-transform disabled:opacity-50 disabled:hover:scale-100"
+              >
+                {isSubmittingReport ? (
+                  <span className="animate-pulse">SUBMITTING...</span>
+                ) : (
+                  <>
+                    <Send size={16} />
+                    SUBMIT REPORT
+                  </>
+                )}
+              </button>
+            </div>
+          </form>
         </div>
 
       </div>

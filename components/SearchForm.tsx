@@ -1,7 +1,7 @@
 import React from 'react';
 import { EstablishmentType, SearchParams } from '../types';
 import { ESTABLISHMENT_TYPES } from '../constants';
-import { Search, Building2, Ruler, Layers } from 'lucide-react';
+import { Search, Building2, Ruler, Layers, FileText } from 'lucide-react';
 
 interface SearchFormProps {
   params: SearchParams;
@@ -11,7 +11,7 @@ interface SearchFormProps {
 }
 
 const SearchForm: React.FC<SearchFormProps> = ({ params, setParams, onSubmit, isLoading }) => {
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setParams(prev => ({ ...prev, [name]: value }));
   };
@@ -68,7 +68,7 @@ const SearchForm: React.FC<SearchFormProps> = ({ params, setParams, onSubmit, is
           </div>
 
           <div>
-            <label className="block text-xs font-mono text-cobalt mb-2 uppercase tracking-widest">Stories</label>
+            <label className="block text-xs font-mono text-cobalt mb-2 uppercase tracking-widest">Storey</label>
             <div className="relative group">
               <Layers className="absolute left-3 top-3 h-5 w-5 text-muted group-focus-within:text-cobalt transition-colors" />
               <input
@@ -82,6 +82,20 @@ const SearchForm: React.FC<SearchFormProps> = ({ params, setParams, onSubmit, is
                 min="1"
               />
             </div>
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-xs font-mono text-cobalt mb-2 uppercase tracking-widest">Additional Details</label>
+          <div className="relative group">
+            <FileText className="absolute left-3 top-3 h-5 w-5 text-muted group-focus-within:text-cobalt transition-colors" />
+            <textarea
+              name="additional_details"
+              value={params.additional_details || ''}
+              onChange={handleChange}
+              placeholder="Enter any specific details, materials, or conditions to help Super FC AI generate more accurate requirements..."
+              className="w-full pl-10 pr-4 py-3 rounded-lg glass-input focus:ring-1 focus:ring-cobalt/50 font-mono text-sm placeholder-muted/30 min-h-[100px] resize-y"
+            />
           </div>
         </div>
 

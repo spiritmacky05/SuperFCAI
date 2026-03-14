@@ -11,11 +11,10 @@
     "start": "tsx server.ts",
     "build": "vite build",
     "lint": "tsc --noEmit",
-    "preview": "vite preview",
-    "seed": "tsx seed_db.ts"
+    "preview": "vite preview"
   },
   "dependencies": {
-    "@google/genai": "^1.43.0",
+    "@google/genai": "^1.44.0",
     "@tailwindcss/postcss": "^4.2.1",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
@@ -26,13 +25,14 @@
     "cors": "^2.8.6",
     "dotenv": "^17.3.1",
     "express": "^5.2.1",
+    "lightningcss": "^1.31.1",
     "lucide-react": "^0.575.0",
-    "openai": "^6.27.0",
-    "pg": "^8.19.0",
+    "nodemailer": "^8.0.2",
     "postcss": "^8.5.6",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
     "react-markdown": "^10.1.0",
+    "recharts": "^3.8.0",
     "remark-gfm": "^4.0.1",
     "tailwindcss": "^4.2.1",
     "tsx": "^4.21.0",
@@ -40,7 +40,7 @@
     "vite": "^6.2.0"
   },
   "devDependencies": {
-    "@types/pg": "^8.18.0",
+    "@types/nodemailer": "^7.0.11",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "vite-plugin-pwa": "^1.2.0"

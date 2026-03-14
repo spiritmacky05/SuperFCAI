@@ -17,6 +17,7 @@ import { SearchParams, User, SavedReport } from './types';
 import { generateFireSafetyReport } from './services/geminiService';
 import { storageService } from './services/storageService';
 import { Menu, X, Search, History, Shield, User as UserIcon, LogOut } from 'lucide-react';
+import { useToast } from './components/ToastContext';
 
 type View = 'main' | 'history' | 'admin' | 'account';
 
@@ -25,6 +26,7 @@ const App: React.FC = () => {
   const [view, setView] = useState<View>('main');
   const [isAssistantOpen, setIsAssistantOpen] = useState(false);
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
+  const { showToast } = useToast();
   
   const [params, setParams] = useState<SearchParams>({
     establishmentType: '',
@@ -65,19 +67,21 @@ const App: React.FC = () => {
     const canceled = urlParams.get('canceled');
 
     if (success) {
-      alert('Payment successful! Your account has been upgraded to Pro.');
+      showToast('Payment successful! Your account has been upgraded to Pro.', 'success');
       // Ideally, you would fetch the updated user profile here
       // For now, we'll just update the local state if the user is logged in
-      if (user) {
-        setUser({ ...user, role: 'pro' });
+      if (user && user.role !== 'pro' && user.role !== 'admin' && user.role !== 'super_admin') {
+        const updatedUser = { ...user, role: 'pro' as const };
+        setUser(updatedUser);
+        localStorage.setItem('superfc_user', JSON.stringify(updatedUser));
       }
       // Clean up URL
       window.history.replaceState({}, '', window.location.pathname);
     } else if (canceled) {
-      alert('Payment canceled.');
+      showToast('Payment canceled.', 'info');
       window.history.replaceState({}, '', window.location.pathname);
     }
-  }, [user]); // Add user dependency so it runs after login if needed, or check on mount
+  }, [user, showToast]); // Add user dependency so it runs after login if needed, or check on mount
 
   const handleLogin = (loggedInUser: User) => {
     setUser(loggedInUser);
@@ -154,18 +158,16 @@ const App: React.FC = () => {
       <main className="flex-grow md:ml-20 lg:ml-64 transition-all duration-300 relative z-10">
         {/* Mobile Header */}
         <div className="md:hidden glass-panel border-b border-glass p-4 sticky top-0 z-40 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <button 
-              onClick={() => setIsMobileDrawerOpen(true)}
-              className="p-2 text-white hover:bg-white/10 rounded-lg transition-colors"
-            >
-              <Menu size={24} />
-            </button>
-            <div className="flex items-center gap-2">
-              <Logo size="sm" />
-              <h1 className="text-lg font-display text-white tracking-wider">SUPER FC AI</h1>
-            </div>
+          <button 
+            onClick={() => setIsMobileDrawerOpen(true)}
+            className="p-2 text-white hover:bg-white/10 rounded-lg transition-colors z-10"
+          >
+            <Menu size={24} />
+          </button>
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <h1 className="text-lg font-display text-white tracking-wider">SUPER FC AI</h1>
           </div>
+          <div className="w-10"></div> {/* Spacer for balance */}
         </div>
 
         {/* Mobile Drawer Overlay */}
@@ -227,7 +229,7 @@ const App: React.FC = () => {
         )}
 
         {view === 'admin' && (user.role === 'admin' || user.role === 'super_admin') ? (
-          <AdminView />
+          <AdminView currentUser={user} />
         ) : view === 'history' ? (
           <HistoryView 
             email={user.email} 
@@ -249,7 +251,7 @@ const App: React.FC = () => {
                     </h3>
                     <div className="bg-obsidian/50 p-3 rounded-lg border border-cobalt/20 mb-2">
                       <p className="text-xs text-silver/80 leading-relaxed font-mono">
-                        <strong className="text-cobalt">WARNING:</strong> AI analysis is for reference only. Physical verification required per protocol 9514.
+                        <strong className="text-cobalt">DISCLAIMER:</strong> Super Fire Code AI serves as a specialized aide for Fire Safety Enforcement. Please note that the digital guidance is a supplement to, not a replacement for, physical and actual inspections, which remain the final authority on standard compliance.
                       </p>
                     </div>
                 </div>

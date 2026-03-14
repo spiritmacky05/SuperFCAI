@@ -3,6 +3,7 @@ import { SearchParams } from '../types';
 import { generateNTC } from '../services/geminiService';
 import ReactMarkdown from 'react-markdown';
 import { AlertTriangle, Check, Copy, Loader2, FileWarning } from 'lucide-react';
+import { useToast } from './ToastContext';
 
 interface NTCGeneratorProps {
   params: SearchParams;
@@ -81,6 +82,7 @@ const NTCGenerator: React.FC<NTCGeneratorProps> = ({ params }) => {
   const [ntcContent, setNtcContent] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const { showToast } = useToast();
 
   const toggleDefect = (defect: string) => {
     const newSelected = new Set(selectedDefects);
@@ -222,7 +224,7 @@ const NTCGenerator: React.FC<NTCGeneratorProps> = ({ params }) => {
             </div>
             <div className="mt-4 flex justify-end">
               <button 
-                onClick={() => {navigator.clipboard.writeText(ntcContent); alert('Copied to clipboard!');}}
+                onClick={() => {navigator.clipboard.writeText(ntcContent); showToast('Copied to clipboard!', 'success');}}
                 className="flex items-center gap-2 text-xs font-mono text-cobalt hover:text-white hover:bg-cobalt/20 px-4 py-2 rounded-lg transition-colors border border-cobalt/30 hover:border-cobalt/50"
               >
                 <Copy className="w-4 h-4" />

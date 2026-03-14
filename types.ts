@@ -22,6 +22,7 @@ export interface SearchParams {
   establishmentType: EstablishmentType | '';
   area: string;
   stories: string;
+  additional_details?: string;
 }
 
 export interface AiResponse {
@@ -35,6 +36,9 @@ export interface User {
   name: string;
   role: UserRole;
   password?: string; // Only for local storage logic, normally hashed
+  bfp_id_url?: string;
+  status?: string;
+  bfp_account_number?: string;
 }
 
 export interface SavedReport {
@@ -55,4 +59,13 @@ export interface KnowledgeEntry {
 export interface ChatMessage {
   role: 'user' | 'model';
   text: string;
+}
+
+export interface ErrorReport {
+  id: number;
+  user_email: string;
+  cited_error: string;
+  actual_correction: string;
+  status: 'pending' | 'evaluated';
+  created_at: string;
 }
