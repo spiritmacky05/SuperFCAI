@@ -165,28 +165,35 @@ export class SQLiteDB implements DB {
       CREATE INDEX IF NOT EXISTS idx_error_reports_status_created ON error_reports(status, created_at DESC);
     `);
 
-    const defaultPasswordHash = await hashPassword('admin');
+    const seedPassword = process.env.SUPERADMIN_PASSWORD || 'admin';
+    const seedPasswordHash = await hashPassword(seedPassword);
+    const seedSuperAdminEmail = process.env.SUPERADMIN_EMAIL || 'spiritmacky05@gmail.com';
 
-    const admin = this.db.prepare('SELECT * FROM users WHERE email = ?').get('admin@bfp.gov.ph');
-    if (!admin) {
-      this.db
-        .prepare('INSERT INTO users (email, name, role, password, status) VALUES (?, ?, ?, ?, ?)')
-        .run('admin@bfp.gov.ph', 'Super Admin', 'admin', defaultPasswordHash, 'approved');
-      console.log('Seeded admin@bfp.gov.ph');
-    }
+    this.db
+      .prepare(`
+        INSERT INTO users (email, name, role, password, status)
+        VALUES (?, ?, ?, ?, ?)
+        ON CONFLICT(email) DO UPDATE SET
+          name = excluded.name,
+          role = excluded.role,
+          password = excluded.password,
+          status = excluded.status
+      `)
+      .run('admin@bfp.gov.ph', 'Super Admin', 'admin', seedPasswordHash, 'approved');
+    console.log('Ensured admin@bfp.gov.ph seed account');
 
-    const superAdmin = this.db.prepare('SELECT * FROM users WHERE email = ?').get('spiritmacky05@gmail.com');
-    if (!superAdmin) {
-      this.db
-        .prepare('INSERT INTO users (email, name, role, password, status) VALUES (?, ?, ?, ?, ?)')
-        .run('spiritmacky05@gmail.com', 'Spirit Macky', 'super_admin', defaultPasswordHash, 'approved');
-      console.log('Seeded spiritmacky05@gmail.com');
-    } else {
-      this.db
-        .prepare('UPDATE users SET role = ?, status = ?, password = ? WHERE email = ?')
-        .run('super_admin', 'approved', defaultPasswordHash, 'spiritmacky05@gmail.com');
-      console.log('Updated spiritmacky05@gmail.com role, status, and password');
-    }
+    this.db
+      .prepare(`
+        INSERT INTO users (email, name, role, password, status)
+        VALUES (?, ?, ?, ?, ?)
+        ON CONFLICT(email) DO UPDATE SET
+          name = excluded.name,
+          role = excluded.role,
+          password = excluded.password,
+          status = excluded.status
+      `)
+      .run(seedSuperAdminEmail, 'Spirit Macky', 'super_admin', seedPasswordHash, 'approved');
+    console.log(`Ensured ${seedSuperAdminEmail} super_admin seed account`);
 
     console.log('SQLite initialized');
   }
