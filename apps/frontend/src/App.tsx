@@ -163,7 +163,7 @@ const App: React.FC = () => {
       <div className={ui.backgroundLayer}>
         <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-cobalt/5 rounded-full blur-[100px]"></div>
         <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-tangerine/5 rounded-full blur-[100px]"></div>
-        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20"></div>
+        <div className="absolute inset-0 bg-radial-[ellipse_at_top,rgba(255,255,255,0.06),transparent_55%] opacity-30"></div>
       </div>
 
       {/* Desktop Drawer Navigation */}

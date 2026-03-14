@@ -83,7 +83,7 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin }) => {
       {/* Background Elements */}
       <div className="absolute top-[-20%] left-[-20%] w-[60%] h-[60%] bg-cobalt/5 rounded-full blur-[120px] pointer-events-none"></div>
       <div className="absolute bottom-[-20%] right-[-20%] w-[60%] h-[60%] bg-tangerine/5 rounded-full blur-[120px] pointer-events-none"></div>
-      <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 pointer-events-none"></div>
+      <div className="absolute inset-0 bg-radial-[ellipse_at_top,rgba(255,255,255,0.06),transparent_60%] opacity-30 pointer-events-none"></div>
 
       <div className="glass-panel p-8 rounded-2xl w-full max-w-md relative z-10 border border-glass shadow-[0_0_40px_rgba(0,0,0,0.5)]">
         <div className="text-center mb-8">

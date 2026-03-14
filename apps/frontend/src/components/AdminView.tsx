@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { KnowledgeEntry, User, UserRole, ErrorReport } from '../types';
 import { storageService } from '../services/storageService';
 import { analyzeTrainingDocument } from '../services/geminiService';
@@ -27,7 +27,6 @@ const AdminView: React.FC<AdminViewProps> = ({ currentUser }) => {
   const [editedUser, setEditedUser] = useState<User | null>(null);
   const [zoomedImage, setZoomedImage] = useState<string | null>(null);
   const { showToast, confirm } = useToast();
-  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   // Mock Data for Dashboard
   const stats = {
@@ -64,11 +63,6 @@ const AdminView: React.FC<AdminViewProps> = ({ currentUser }) => {
     }, 1500);
   };
 
-  // Initialize audio
-  useEffect(() => {
-    audioRef.current = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
-  }, []);
-
   // Fetch data
   const fetchData = async () => {
     setKnowledgeEntries(await storageService.getKnowledge());
@@ -81,9 +75,6 @@ const AdminView: React.FC<AdminViewProps> = ({ currentUser }) => {
         
         // Check for new reports to trigger notification
         if (errorReports.length > 0 && data.length > errorReports.length) {
-          if (audioRef.current) {
-            audioRef.current.play().catch(e => console.error('Audio play failed:', e));
-          }
           showToast('New AI Error Report received!', 'info');
         }
         
@@ -426,7 +417,7 @@ const AdminView: React.FC<AdminViewProps> = ({ currentUser }) => {
                     Most Used AI Brain Items
                   </h3>
                   <div className="h-64">
-                    <ResponsiveContainer width="100%" height="100%">
+                    <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={200}>
                       <BarChart data={aiUsageData} layout="vertical" margin={{ top: 0, right: 0, left: 40, bottom: 0 }}>
                         <XAxis type="number" hide />
                         <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{ fill: '#8E9299', fontSize: 10 }} width={120} />
@@ -451,7 +442,7 @@ const AdminView: React.FC<AdminViewProps> = ({ currentUser }) => {
                     Searches Missing from Context
                   </h3>
                   <div className="h-64">
-                    <ResponsiveContainer width="100%" height="100%">
+                    <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={200}>
                       <PieChart>
                         <Pie
                           data={missingContextData}
