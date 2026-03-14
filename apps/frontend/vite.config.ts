@@ -6,14 +6,33 @@ import { VitePWA } from 'vite-plugin-pwa';
 export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, '.', '');
     const disableHmr = process.env.DISABLE_HMR === 'true' || env.DISABLE_HMR === 'true';
+    const backendPort = env.BACKEND_PORT || process.env.BACKEND_PORT || '3001';
+    const hmrClientPort = env.HMR_CLIENT_PORT || process.env.HMR_CLIENT_PORT;
+    const hmrHost = env.HMR_HOST || process.env.HMR_HOST;
+    const hmrProtocol = env.HMR_PROTOCOL || process.env.HMR_PROTOCOL;
+
+    const hmr = disableHmr
+      ? false
+      : (hmrClientPort || hmrHost || hmrProtocol)
+        ? {
+            ...(hmrClientPort ? { clientPort: parseInt(hmrClientPort, 10) } : {}),
+            ...(hmrHost ? { host: hmrHost } : {}),
+            ...(hmrProtocol ? { protocol: hmrProtocol as 'ws' | 'wss' } : {}),
+          }
+        : true;
+
     return {
       base: './',
       server: {
-        port: 3000,
+        port: 5173,
         host: '0.0.0.0',
-        hmr: disableHmr ? false : {
-          clientPort: 443,
-        }
+        proxy: {
+          '/api': {
+            target: `http://localhost:${backendPort}`,
+            changeOrigin: true,
+          },
+        },
+        hmr,
       },
       plugins: [
         react(),
@@ -59,7 +78,7 @@ export default defineConfig(({ mode }) => {
       },
       resolve: {
         alias: {
-          '@': path.resolve(__dirname, '.'),
+          '@': path.resolve(__dirname, 'src'),
         }
       }
     };

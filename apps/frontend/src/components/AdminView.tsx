@@ -118,22 +118,23 @@ const AdminView: React.FC<AdminViewProps> = ({ currentUser }) => {
     }
   };
 
-  const handleDeleteReport = (id: number) => {
-    confirm('Are you sure you want to delete this report?', async () => {
-      try {
-        const res = await fetch(`/api/error-reports/${id}`, {
-          method: 'DELETE'
-        });
-        if (res.ok) {
-          showToast('Report deleted successfully', 'success');
-          fetchData();
-        } else {
-          showToast('Failed to delete report', 'error');
-        }
-      } catch (e) {
+  const handleDeleteReport = async (id: number) => {
+    const isConfirmed = await confirm('Are you sure you want to delete this report?');
+    if (!isConfirmed) return;
+
+    try {
+      const res = await fetch(`/api/error-reports/${id}`, {
+        method: 'DELETE'
+      });
+      if (res.ok) {
+        showToast('Report deleted successfully', 'success');
+        fetchData();
+      } else {
         showToast('Failed to delete report', 'error');
       }
-    });
+    } catch (e) {
+      showToast('Failed to delete report', 'error');
+    }
   };
 
   const handleCopyToClipboard = (text: string) => {
@@ -259,6 +260,24 @@ const AdminView: React.FC<AdminViewProps> = ({ currentUser }) => {
       setSelectedUser(updatedUser);
       showToast(`User approved successfully.`, 'success');
     }
+  };
+
+  const handleToggleUserStatus = async (email: string) => {
+    const user = users.find(u => u.email === email);
+    if (!user) return;
+
+    const currentStatus = user.status || 'approved';
+    const nextStatus = currentStatus === 'pending' ? 'approved' : 'pending';
+
+    const updatedUser = { ...user, status: nextStatus };
+    await storageService.saveUser(updatedUser);
+    setUsers(await storageService.getUsers());
+
+    if (selectedUser?.email === email) {
+      setSelectedUser(updatedUser);
+    }
+
+    showToast(`User status updated to ${nextStatus}.`, 'success');
   };
 
   const handleResetWeeklyLimit = async (email: string) => {
@@ -511,13 +530,17 @@ const AdminView: React.FC<AdminViewProps> = ({ currentUser }) => {
                           )}
                         </td>
                         <td className="p-4">
-                          <span className={`px-2 py-1 rounded text-[10px] font-mono uppercase tracking-wider border ${
-                            user.status === 'pending'
-                              ? 'bg-yellow-900/20 text-yellow-400 border-yellow-500/30'
-                              : 'bg-emerald-900/20 text-emerald-400 border-emerald-500/30'
-                          }`}>
+                          <button
+                            onClick={() => handleToggleUserStatus(user.email)}
+                            className={`px-2 py-1 rounded text-[10px] font-mono uppercase tracking-wider border transition-colors hover:brightness-110 ${
+                              user.status === 'pending'
+                                ? 'bg-yellow-900/20 text-yellow-400 border-yellow-500/30'
+                                : 'bg-emerald-900/20 text-emerald-400 border-emerald-500/30'
+                            }`}
+                            title="Toggle status"
+                          >
                             {user.status || 'approved'}
-                          </span>
+                          </button>
                         </td>
                         <td className="p-4 text-right">
                           {editingUser === user.email ? (
@@ -628,13 +651,17 @@ const AdminView: React.FC<AdminViewProps> = ({ currentUser }) => {
                       
                       <div className="flex items-center gap-2">
                         <span className="text-[10px] text-muted uppercase font-mono tracking-wider">Status:</span>
-                        <span className={`px-2 py-1 rounded text-[10px] font-mono uppercase tracking-wider border ${
-                          user.status === 'pending'
-                            ? 'bg-yellow-900/20 text-yellow-400 border-yellow-500/30'
-                            : 'bg-emerald-900/20 text-emerald-400 border-emerald-500/30'
-                        }`}>
+                        <button
+                          onClick={() => handleToggleUserStatus(user.email)}
+                          className={`px-2 py-1 rounded text-[10px] font-mono uppercase tracking-wider border transition-colors hover:brightness-110 ${
+                            user.status === 'pending'
+                              ? 'bg-yellow-900/20 text-yellow-400 border-yellow-500/30'
+                              : 'bg-emerald-900/20 text-emerald-400 border-emerald-500/30'
+                          }`}
+                          title="Toggle status"
+                        >
                           {user.status || 'approved'}
-                        </span>
+                        </button>
                       </div>
                     </div>
                   </div>

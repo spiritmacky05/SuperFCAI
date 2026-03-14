@@ -27,3 +27,8 @@ dist-ssr
 .env
 .env.*
 !.env.example
+
+# Local database artifacts
+apps/backend/*.sqlite
+apps/backend/*.sqlite-shm
+apps/backend/*.sqlite-wal

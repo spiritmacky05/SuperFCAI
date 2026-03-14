@@ -89,17 +89,31 @@ const AccountView: React.FC<AccountViewProps> = ({ user }) => {
     }
   }, [user.role, showToast]);
 
+  const ui = {
+    page: 'container mx-auto px-3 sm:px-4 py-6 sm:py-8 max-w-4xl animate-fade-in-up',
+    heading: 'text-xl sm:text-2xl font-display text-white mb-5 sm:mb-6 tracking-wider flex items-center gap-3',
+    grid: 'grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6',
+    panel: 'glass-panel p-5 sm:p-6 rounded-xl border border-glass',
+    textInput: 'w-full bg-obsidian/50 border border-glass rounded-lg px-4 py-2 text-white font-mono text-sm focus:border-cobalt outline-none',
+    mutedInput: 'w-full bg-obsidian/50 border border-glass rounded-lg px-4 py-2 text-muted font-mono text-sm focus:border-cobalt outline-none cursor-not-allowed',
+    upgradePanel: 'md:col-span-2 glass-panel p-5 sm:p-8 rounded-xl border border-cobalt/30 relative overflow-hidden',
+    upgradeInner: 'relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 sm:gap-8',
+    upgradeActions: 'flex-shrink-0 w-full md:w-auto',
+    upgradeButton: 'cyber-button-primary w-full md:w-auto px-6 sm:px-8 py-4 rounded-lg flex items-center justify-center gap-3 text-obsidian font-bold text-base sm:text-lg shadow-[0_0_20px_rgba(0,242,255,0.3)] hover:scale-105 transition-transform',
+    reportPanel: 'md:col-span-2 glass-panel p-5 sm:p-6 rounded-xl border border-glass',
+  };
+
   return (
-    <div className="container mx-auto px-4 py-8 max-w-4xl animate-fade-in-up">
-      <h2 className="text-2xl font-display text-white mb-6 tracking-wider flex items-center gap-3">
+    <div className={ui.page}>
+      <h2 className={ui.heading}>
         <SettingsIcon className="text-cobalt" />
         ACCOUNT SETTINGS
       </h2>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className={ui.grid}>
         
         {/* Analytics Section */}
-        <div className="glass-panel p-6 rounded-xl border border-glass relative overflow-hidden group">
+        <div className="glass-panel p-5 sm:p-6 rounded-xl border border-glass relative overflow-hidden group">
           <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
             <BarChart size={100} />
           </div>
@@ -124,7 +138,7 @@ const AccountView: React.FC<AccountViewProps> = ({ user }) => {
         </div>
 
         {/* Profile Section */}
-        <div className="glass-panel p-6 rounded-xl border border-glass">
+        <div className={ui.panel}>
           <h3 className="text-lg font-display text-white mb-4 flex items-center gap-2">
             <Shield className="text-cobalt" size={20} />
             PROFILE
@@ -137,7 +151,7 @@ const AccountView: React.FC<AccountViewProps> = ({ user }) => {
                 type="text" 
                 value={user.name} 
                 readOnly 
-                className="w-full bg-obsidian/50 border border-glass rounded-lg px-4 py-2 text-white font-mono text-sm focus:border-cobalt outline-none"
+                className={ui.textInput}
               />
             </div>
             <div>
@@ -146,7 +160,7 @@ const AccountView: React.FC<AccountViewProps> = ({ user }) => {
                 type="email" 
                 value={user.email} 
                 readOnly 
-                className="w-full bg-obsidian/50 border border-glass rounded-lg px-4 py-2 text-muted font-mono text-sm focus:border-cobalt outline-none cursor-not-allowed"
+                className={ui.mutedInput}
               />
             </div>
             <div className="pt-2">
@@ -158,9 +172,9 @@ const AccountView: React.FC<AccountViewProps> = ({ user }) => {
         </div>
 
         {/* Pro Upgrade Gateway */}
-        <div className="md:col-span-2 glass-panel p-8 rounded-xl border border-cobalt/30 relative overflow-hidden">
+        <div className={ui.upgradePanel}>
           <div className="absolute inset-0 bg-gradient-to-r from-cobalt/5 via-transparent to-transparent"></div>
-          <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8">
+          <div className={ui.upgradeInner}>
             <div className="flex-1">
               <h3 className="text-2xl font-display text-white mb-2 flex items-center gap-2">
                 <Zap className="text-yellow-400 fill-yellow-400" />
@@ -183,12 +197,12 @@ const AccountView: React.FC<AccountViewProps> = ({ user }) => {
               </ul>
             </div>
 
-            <div className="flex-shrink-0">
+            <div className={ui.upgradeActions}>
               {user.role === 'free' || user.status === 'pending' ? (
                 <>
                   <button 
                     onClick={handleUpgrade}
-                    className="cyber-button-primary px-8 py-4 rounded-lg flex items-center gap-3 text-obsidian font-bold text-lg shadow-[0_0_20px_rgba(0,242,255,0.3)] hover:scale-105 transition-transform"
+                    className={ui.upgradeButton}
                   >
                     <CreditCard size={20} />
                     PAY WITH GCASH
@@ -206,7 +220,7 @@ const AccountView: React.FC<AccountViewProps> = ({ user }) => {
         </div>
 
         {/* AI Calibration & Error Reporting */}
-        <div className="md:col-span-2 glass-panel p-6 rounded-xl border border-glass">
+        <div className={ui.reportPanel}>
           <h3 className="text-lg font-display text-white mb-2 flex items-center gap-2">
             <AlertTriangle className="text-tangerine" size={20} />
             AI CALIBRATION & ERROR REPORTING

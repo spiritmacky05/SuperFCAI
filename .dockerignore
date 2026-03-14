@@ -1,0 +1,12 @@
+node_modules
+**/node_modules
+.git
+.gitignore
+.vscode
+.env
+.env.*
+!.env.example
+npm-debug.log*
+docker-compose*.yml
+**/dist
+**/.DS_Store

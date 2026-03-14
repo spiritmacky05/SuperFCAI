@@ -3,46 +3,25 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "workspaces": [
+    "apps/*"
+  ],
   "engines": {
     "node": ">=18.0.0"
   },
   "scripts": {
-    "dev": "tsx server.ts",
-    "start": "tsx server.ts",
-    "build": "vite build",
-    "lint": "tsc --noEmit",
-    "preview": "vite preview"
-  },
-  "dependencies": {
-    "@google/genai": "^1.44.0",
-    "@tailwindcss/postcss": "^4.2.1",
-    "@types/cors": "^2.8.19",
-    "@types/express": "^5.0.6",
-    "@types/node": "^22.14.0",
-    "@vitejs/plugin-react": "^5.0.0",
-    "autoprefixer": "^10.4.27",
-    "better-sqlite3": "^12.6.2",
-    "cors": "^2.8.6",
-    "dotenv": "^17.3.1",
-    "express": "^5.2.1",
-    "lightningcss": "^1.31.1",
-    "lucide-react": "^0.575.0",
-    "nodemailer": "^8.0.2",
-    "postcss": "^8.5.6",
-    "react": "^19.2.3",
-    "react-dom": "^19.2.3",
-    "react-markdown": "^10.1.0",
-    "recharts": "^3.8.0",
-    "remark-gfm": "^4.0.1",
-    "tailwindcss": "^4.2.1",
-    "tsx": "^4.21.0",
-    "typescript": "~5.8.2",
-    "vite": "^6.2.0"
+    "dev": "concurrently -n frontend,backend \"npm run dev:frontend\" \"npm run dev:backend\"",
+    "dev:frontend": "npm run dev -w @superfcai/frontend",
+    "dev:backend": "npm run dev -w @superfcai/backend",
+    "build": "npm run build:frontend && npm run build:backend",
+    "build:frontend": "npm run build -w @superfcai/frontend",
+    "build:backend": "npm run build -w @superfcai/backend",
+    "start": "npm run start -w @superfcai/backend",
+    "start:frontend": "npm run preview -w @superfcai/frontend",
+    "start:backend": "npm run start -w @superfcai/backend",
+    "lint": "npm run lint -ws --if-present"
   },
   "devDependencies": {
-    "@types/nodemailer": "^7.0.11",
-    "@types/react": "^19.2.14",
-    "@types/react-dom": "^19.2.3",
-    "vite-plugin-pwa": "^1.2.0"
+    "concurrently": "^9.2.1"
   }
 }

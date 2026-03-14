@@ -1,9 +1,3 @@
-
-import { EstablishmentType, OccupancyType } from './types';
-
-export const ESTABLISHMENT_TYPES = Object.values(EstablishmentType);
-export const OCCUPANCY_TYPES = Object.values(OccupancyType);
-
 // This context is derived from the user's uploaded OCR data. 
 // In a production app, this might be stored in a vector database (RAG), but here we embed the core rules provided.
 export const FIRE_CODE_CONTEXT = `
