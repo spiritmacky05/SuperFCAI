@@ -21,12 +21,12 @@ export const createApp = (container: AppContainer) => {
   app.disable('x-powered-by');
   app.use(disablePoweredBy);
   app.use(helmetMiddleware);
-  app.use(corsMiddleware);
 
   // Must stay before express.json() for webhook signature verification.
   app.post('/api/paymongo/webhook', express.raw({ type: 'application/json' }), container.controllers.paymongo.webhook);
 
   app.use(express.json({ limit: '2mb' }));
+  app.use('/api', corsMiddleware);
   app.use('/api', apiRateLimit);
   app.use('/api', createApiRouter(container));
 
