@@ -14,6 +14,7 @@ export const env = {
   nodeEnv: process.env.NODE_ENV || 'development',
   port: parseInt(process.env.PORT || '3001', 10),
   dbFilePath: process.env.DB_FILE || 'database.sqlite',
+  domain: process.env.DOMAIN || '',
   corsOrigins: process.env.CORS_ORIGINS || '',
   rateLimitMax: parseInt(process.env.RATE_LIMIT_MAX || '300', 10),
   authRateLimitMax: parseInt(process.env.AUTH_RATE_LIMIT_MAX || '20', 10),

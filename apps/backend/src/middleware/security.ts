@@ -6,6 +6,13 @@ import { env } from '../config/env.ts';
 
 const normalizeOrigin = (origin: string) => origin.trim().replace(/\/$/, '');
 
+const extractHost = (value: string) =>
+  value
+    .trim()
+    .replace(/^https?:\/\//, '')
+    .replace(/\/.*$/, '')
+    .toLowerCase();
+
 const defaultAllowedOrigins = [
   'http://localhost:5173',
   'http://127.0.0.1:5173',
@@ -18,7 +25,12 @@ const configuredOrigins = (env.corsOrigins || '')
   .map((o) => o.trim())
   .filter(Boolean);
 
-const allowedOrigins = new Set([...defaultAllowedOrigins, ...configuredOrigins].map(normalizeOrigin));
+const domainHost = extractHost(env.domain || '');
+const domainOrigins = domainHost
+  ? [`https://${domainHost}`, `http://${domainHost}`]
+  : [];
+
+const allowedOrigins = new Set([...defaultAllowedOrigins, ...domainOrigins, ...configuredOrigins].map(normalizeOrigin));
 
 export const corsMiddleware = cors({
   origin(origin, callback) {
