@@ -43,6 +43,7 @@ export interface User {
   proofOfPaymentUrl?: string;
   subscription_expiry?: string;
   last_payment_date?: string;
+  session_id?: string;
 }
 
 export interface SavedReport {

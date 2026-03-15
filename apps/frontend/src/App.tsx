@@ -50,11 +50,14 @@ const App: React.FC = () => {
     if (!user) return;
 
     const syncUser = async () => {
+      const sessionId = localStorage.getItem('session_id');
+      if (!sessionId) return; // Wait until session_id is persisted
+
       try {
         const response = await fetch('/api/login/status', {
           headers: {
             'X-User-Email': user.email,
-            'X-Session-Id': localStorage.getItem('session_id') || ''
+            'X-Session-Id': sessionId
           }
         });
 
