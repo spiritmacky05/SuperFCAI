@@ -37,6 +37,12 @@ export class UserService {
 
     const user = { ...matchedUser };
     
+    // Generate new session ID to invalidate previous sessions (single device enforcement)
+    // We use crypto.randomUUID() which is available in Node.js
+    const sessionId = crypto.randomUUID();
+    await this.users.upsert({ email, session_id: sessionId });
+    user.session_id = sessionId;
+
     // Check subscription expiry
     if (user.role === 'pro') {
       if (user.subscription_expiry) {
@@ -107,6 +113,13 @@ export class UserService {
       console.error(`FAILED to update payment status in DB:`, err);
       throw err;
     }
+  }
+
+  async verifySession(email: string, sessionId: string): Promise<boolean> {
+    const matches = await this.users.getByEmail(email);
+    if (matches.length === 0) return false;
+    const user = matches[0];
+    return user.session_id === sessionId;
   }
 
   deleteUser(email: string) {

@@ -81,6 +81,30 @@ export const disablePoweredBy = (_req: Request, res: Response, next: NextFunctio
   next();
 };
 
+export const createSessionAuthMiddleware = (userService: any) => {
+  return async (req: Request, res: Response, next: NextFunction) => {
+    // Skip session check for login, status check (if any), and public routes
+    const publicPaths = ['/api/login', '/api/users', '/api/health', '/api/paymongo/webhook'];
+    if (publicPaths.includes(req.path) || (req.method === 'POST' && req.path === '/api/users')) {
+      return next();
+    }
+
+    const email = req.headers['x-user-email'] as string;
+    const sessionId = req.headers['x-session-id'] as string;
+
+    if (!email || !sessionId) {
+      return res.status(401).json({ error: 'SESSION ERROR: Access ID or Session ID missing. Please log in again.' });
+    }
+
+    const isValid = await userService.verifySession(email, sessionId);
+    if (!isValid) {
+      return res.status(401).json({ error: 'SESSION EXPIRED: Your account has been logged in on another device.' });
+    }
+
+    next();
+  };
+};
+
 export const errorHandler = (err: any, _req: Request, res: Response, _next: NextFunction) => {
   if (String(err?.message || '').includes('CORS policy')) {
     return res.status(403).json({ error: 'Forbidden origin' });

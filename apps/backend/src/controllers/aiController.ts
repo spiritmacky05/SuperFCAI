@@ -27,6 +27,17 @@ export class AiController {
       }
 
       const text = await this.aiService.generateContent(prompt);
+      
+      // Log usage for tracking
+      if (email) {
+        await this.reportService.save(email, {
+          id: `usage-${Date.now()}`,
+          timestamp: Date.now(),
+          params: JSON.stringify({ type: 'content_generation', prompt: prompt.substring(0, 50) }),
+          result: 'INTERNAL_USAGE_LOG'
+        });
+      }
+
       res.json({ text });
     } catch (err: any) {
       const status = String(err.message || '').includes('not configured') ? 503 : 500;
@@ -51,6 +62,17 @@ export class AiController {
       }
 
       const markdown = await this.aiService.generateFireSafetyReport(params);
+
+      // Log usage for tracking
+      if (email) {
+        await this.reportService.save(email, {
+          id: `report-${Date.now()}`,
+          timestamp: Date.now(),
+          params: JSON.stringify({ type: 'report_generation', ...params }),
+          result: 'INTERNAL_USAGE_LOG'
+        });
+      }
+
       res.json({ markdown });
     } catch (err: any) {
       const status = String(err.message || '').includes('not configured') ? 503 : 500;

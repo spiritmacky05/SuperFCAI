@@ -18,7 +18,9 @@ const HistoryView: React.FC<HistoryViewProps> = ({ email, onSelect, onBack }) =>
       setIsLoading(true);
       try {
         const data = await storageService.getReports(email);
-        setReports(data);
+        // Filter out background usage logs from history
+        const filtered = data.filter((r: SavedReport) => r.result !== 'INTERNAL_USAGE_LOG');
+        setReports(filtered);
       } catch (error) {
         console.error("Failed to fetch reports", error);
       } finally {

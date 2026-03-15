@@ -212,7 +212,7 @@ Thank you for supporting Super FC AI!
           <div className="mt-6 w-full bg-glass h-2 rounded-full overflow-hidden">
             <div 
               className="bg-tangerine h-full rounded-full" 
-              style={{ width: user.role === 'pro' ? '100%' : `${Math.min((usageCount / 10) * 100, 100)}%` }}
+              style={{ width: `${Math.min((usageCount / (user.role === 'pro' ? 1000 : 10)) * 100, 100)}%` }}
             ></div>
           </div>
           <p className="text-[10px] text-right text-muted mt-1 font-mono uppercase tracking-widest">

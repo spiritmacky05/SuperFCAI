@@ -23,4 +23,14 @@ export class ReportController {
       res.status(500).json({ error: err.message });
     }
   };
+
+  getUsageAnalytics = async (req: Request, res: Response) => {
+    try {
+      const email = String(req.query.email || '');
+      const weeklyCount = await this.reports.getWeeklyUsage(email);
+      res.json({ weeklyCount });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  };
 }

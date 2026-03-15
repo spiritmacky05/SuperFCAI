@@ -6,7 +6,9 @@ export const storageService = {
   // User Management
   getUsers: async (): Promise<User[]> => {
     try {
-      const response = await fetch(`${API_BASE}/users`);
+      const response = await fetch(`${API_BASE}/users`, {
+        headers: storageService.getAuthHeaders()
+      });
       if (!response.ok) throw new Error('Failed to fetch users');
       return await response.json();
     } catch (e) {
@@ -15,11 +17,43 @@ export const storageService = {
     }
   },
 
+  // Helper to get current user from local storage
+  getUser: (): User | null => {
+    const userJson = localStorage.getItem('user');
+    return userJson ? JSON.parse(userJson) : null;
+  },
+
+  // Helper to get authentication headers
+  getAuthHeaders(): HeadersInit {
+    const user = this.getUser();
+    const sessionId = localStorage.getItem('session_id');
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    if (user?.email) headers['X-User-Email'] = user.email;
+    if (sessionId) headers['X-Session-Id'] = sessionId;
+    return headers;
+  },
+
+  // Helper to clear authentication details
+  logout() {
+    localStorage.removeItem('user');
+    localStorage.removeItem('session_id');
+  },
+
+  // Helper to set authentication details
+  setAuth(user: any) {
+    localStorage.setItem('user', JSON.stringify(user));
+    if (user.session_id) {
+      localStorage.setItem('session_id', user.session_id);
+    }
+  },
+
   saveUser: async (user: User): Promise<void> => {
     try {
       const response = await fetch(`${API_BASE}/users`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: storageService.getAuthHeaders(),
         body: JSON.stringify(user)
       });
       if (!response.ok) throw new Error('Failed to save user');
@@ -31,7 +65,8 @@ export const storageService = {
   deleteUser: async (email: string): Promise<void> => {
     try {
       const response = await fetch(`${API_BASE}/users/${encodeURIComponent(email)}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: storageService.getAuthHeaders()
       });
       if (!response.ok) throw new Error('Failed to delete user');
     } catch (e) {
@@ -82,7 +117,7 @@ export const storageService = {
     try {
       const response = await fetch(`${API_BASE}/knowledge`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: storageService.getAuthHeaders(),
         body: JSON.stringify(entry)
       });
       if (!response.ok) throw new Error('Failed to save knowledge');
@@ -93,7 +128,9 @@ export const storageService = {
 
   getKnowledge: async (): Promise<KnowledgeEntry[]> => {
     try {
-      const response = await fetch(`${API_BASE}/knowledge`);
+      const response = await fetch(`${API_BASE}/knowledge`, {
+        headers: storageService.getAuthHeaders()
+      });
       if (!response.ok) throw new Error('Failed to fetch knowledge');
       return await response.json();
     } catch (e) {
@@ -105,7 +142,8 @@ export const storageService = {
   deleteKnowledge: async (id: string): Promise<void> => {
     try {
       const response = await fetch(`${API_BASE}/knowledge/${encodeURIComponent(id)}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: storageService.getAuthHeaders()
       });
       if (!response.ok) throw new Error('Failed to delete knowledge');
     } catch (e) {
@@ -118,7 +156,7 @@ export const storageService = {
     try {
       const response = await fetch(`${API_BASE}/reports`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: storageService.getAuthHeaders(),
         body: JSON.stringify({ email, report })
       });
       if (!response.ok) throw new Error('Failed to save report');
@@ -129,7 +167,9 @@ export const storageService = {
 
   getReports: async (email: string): Promise<SavedReport[]> => {
     try {
-      const response = await fetch(`${API_BASE}/reports?email=${encodeURIComponent(email)}`);
+      const response = await fetch(`${API_BASE}/reports?email=${encodeURIComponent(email)}`, {
+        headers: storageService.getAuthHeaders()
+      });
       if (!response.ok) throw new Error('Failed to fetch reports');
       return await response.json();
     } catch (e) {
@@ -137,8 +177,4 @@ export const storageService = {
       return [];
     }
   },
-
-  // Legacy stubs for compatibility (if any remain)
-  getCurrentUser: () => null,
-  logout: () => {}
 };

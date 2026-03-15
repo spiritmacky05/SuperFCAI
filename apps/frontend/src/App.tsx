@@ -36,13 +36,55 @@ const App: React.FC = () => {
       if (user && user.role !== 'pro' && user.role !== 'admin' && user.role !== 'super_admin') {
         const updatedUser = { ...user, role: 'pro' as const };
         setUser(updatedUser);
-        localStorage.setItem('superfc_user', JSON.stringify(updatedUser));
+        localStorage.setItem('user', JSON.stringify(updatedUser)); // Use 'user' key consistent with storageService
       }
       window.history.replaceState({}, '', window.location.pathname);
     } else if (canceled) {
       showToast('Payment canceled.', 'info');
       window.history.replaceState({}, '', window.location.pathname);
     }
+  }, [user, setUser, showToast]);
+
+  // Periodic session & role validation
+  useEffect(() => {
+    if (!user) return;
+
+    const syncUser = async () => {
+      try {
+        const response = await fetch('/api/login/status', {
+          headers: {
+            'X-User-Email': user.email,
+            'X-Session-Id': localStorage.getItem('session_id') || ''
+          }
+        });
+
+        if (response.status === 401) {
+          const data = await response.json().catch(() => ({}));
+          handleLogout();
+          showToast(data.error || 'Session expired. Please log in again.', 'info');
+          return;
+        }
+
+        if (response.ok) {
+          const freshUser = await response.json();
+          // If role or status changed, update state without logout
+          if (freshUser.role !== user.role || freshUser.status !== user.status) {
+            setUser(freshUser);
+            localStorage.setItem('user', JSON.stringify(freshUser));
+            if (freshUser.role === 'pro' && user.role === 'free') {
+              showToast('Your PRO features have been activated!', 'success');
+            }
+          }
+        }
+      } catch (e) {
+        console.error('Session sync failed:', e);
+      }
+    };
+
+    const interval = setInterval(syncUser, 30000); // Sync every 30 seconds
+    syncUser(); // Initial sync
+
+    return () => clearInterval(interval);
   }, [user, setUser, showToast]);
 
   const handleLogout = () => {

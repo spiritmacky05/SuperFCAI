@@ -42,6 +42,20 @@ export class UserController {
     }
   };
 
+  loginStatus = async (req: Request, res: Response) => {
+    try {
+      const email = req.headers['x-user-email'] as string;
+      const users = await this.userService.listUsers();
+      const user = users.find(u => u.email === email);
+      if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+      res.json(user);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  };
+
   update = async (req: Request, res: Response) => {
     try {
       const { role, status } = req.body;

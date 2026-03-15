@@ -32,7 +32,8 @@ export class SQLiteDB implements DB {
         paymentStatus TEXT CHECK (paymentStatus IN ('none', 'pending', 'approved', 'rejected')) NOT NULL DEFAULT 'none',
         subscription_expiry DATETIME,
         last_payment_date DATETIME,
-        usage_reset_date DATETIME
+        usage_reset_date DATETIME,
+        session_id TEXT
       );
       CREATE TABLE IF NOT EXISTS reports (
         id TEXT PRIMARY KEY,
@@ -92,11 +93,12 @@ export class SQLiteDB implements DB {
             paymentStatus TEXT CHECK (paymentStatus IN ('none', 'pending', 'approved', 'rejected')) NOT NULL DEFAULT 'none',
             subscription_expiry DATETIME,
             last_payment_date DATETIME,
-            usage_reset_date DATETIME
+            usage_reset_date DATETIME,
+            session_id TEXT
           );
           INSERT INTO users (
             email, name, role, password, bfp_id_url, status, bfp_account_number, 
-            proofOfPaymentUrl, paymentStatus, subscription_expiry, last_payment_date, usage_reset_date
+            proofOfPaymentUrl, paymentStatus, subscription_expiry, last_payment_date, usage_reset_date, session_id
           )
           SELECT
             email,
@@ -110,7 +112,8 @@ export class SQLiteDB implements DB {
             COALESCE(paymentStatus, 'none'),
             subscription_expiry,
             last_payment_date,
-            usage_reset_date
+            usage_reset_date,
+            NULL
           FROM users_legacy;
           DROP TABLE users_legacy;
 

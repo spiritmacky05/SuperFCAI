@@ -36,6 +36,7 @@ export const createApiRouter = (container: AppContainer) => {
 
   router.get('/users', user.list);
   router.post('/users', user.upsert);
+  router.get('/login/status', user.loginStatus);
   router.post('/login', authRateLimit, user.login);
   router.put('/users/:email', user.update);
   router.delete('/users/:email', user.delete);
@@ -44,6 +45,7 @@ export const createApiRouter = (container: AppContainer) => {
 
   router.get('/reports', report.list);
   router.post('/reports', report.save);
+  router.get('/usage-analytics', report.getUsageAnalytics);
 
   router.get('/knowledge', knowledge.list);
   router.post('/knowledge', knowledge.save);

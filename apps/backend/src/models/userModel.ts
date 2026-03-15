@@ -28,14 +28,16 @@ export class UserModel {
     subscription_expiry?: string;
     last_payment_date?: string;
     usage_reset_date?: string;
+    session_id?: string;
   }) {
     const { 
       email, name, role, password, bfp_id_url, status, 
       bfp_account_number, proofOfPaymentUrl, paymentStatus,
-      subscription_expiry, last_payment_date, usage_reset_date
+      subscription_expiry, last_payment_date, usage_reset_date,
+      session_id
     } = payload;
     const existing = await this.getByEmail(email);
-
+ 
     if (existing.length > 0) {
       return this.db.run(
         `UPDATE users SET 
@@ -49,24 +51,25 @@ export class UserModel {
           paymentStatus = COALESCE(?, paymentStatus),
           subscription_expiry = COALESCE(?, subscription_expiry),
           last_payment_date = COALESCE(?, last_payment_date),
-          usage_reset_date = COALESCE(?, usage_reset_date)
+          usage_reset_date = COALESCE(?, usage_reset_date),
+          session_id = COALESCE(?, session_id)
         WHERE email = ?`,
         [
           name, role, password, bfp_id_url, status, 
           bfp_account_number, proofOfPaymentUrl, paymentStatus,
           subscription_expiry, last_payment_date, usage_reset_date,
-          email
+          session_id, email
         ],
       );
     }
-
+ 
     return this.db.run(
-      'INSERT INTO users (email, name, role, password, bfp_id_url, status, bfp_account_number, proofOfPaymentUrl, paymentStatus, subscription_expiry, last_payment_date, usage_reset_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      'INSERT INTO users (email, name, role, password, bfp_id_url, status, bfp_account_number, proofOfPaymentUrl, paymentStatus, subscription_expiry, last_payment_date, usage_reset_date, session_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
       [
         email, name, role || 'free', password, bfp_id_url || null, 
         status || 'pending', bfp_account_number || null, proofOfPaymentUrl || null, 
         paymentStatus || 'none', subscription_expiry || null, 
-        last_payment_date || null, usage_reset_date || null
+        last_payment_date || null, usage_reset_date || null, session_id || null
       ],
     );
   }

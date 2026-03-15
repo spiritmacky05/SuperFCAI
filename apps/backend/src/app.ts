@@ -7,6 +7,7 @@ import { env } from './config/env.ts';
 import {
   apiRateLimit,
   corsMiddleware,
+  createSessionAuthMiddleware,
   disablePoweredBy,
   errorHandler,
   helmetMiddleware,
@@ -28,6 +29,7 @@ export const createApp = (container: AppContainer) => {
 
   app.use(express.json({ limit: '2mb' }));
   app.use('/api', corsMiddleware);
+  app.use('/api', createSessionAuthMiddleware(container.controllers.user['userService'])); // Accessing internal service
   app.use('/api', apiRateLimit);
   app.use('/api', createApiRouter(container));
 
