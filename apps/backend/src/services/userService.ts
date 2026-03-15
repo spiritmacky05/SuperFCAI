@@ -38,12 +38,22 @@ export class UserService {
     const user = { ...matchedUser };
     
     // Check subscription expiry
-    if (user.role === 'pro' && user.subscription_expiry) {
-      const expiry = new Date(user.subscription_expiry);
-      if (expiry < new Date()) {
-        console.log(`User ${email} subscription expired. Downgrading to free.`);
-        await this.users.upsert({ email, role: 'free' });
-        user.role = 'free';
+    if (user.role === 'pro') {
+      if (user.subscription_expiry) {
+        const expiry = new Date(user.subscription_expiry);
+        if (expiry < new Date()) {
+          console.log(`User ${email} subscription expired. Downgrading to free.`);
+          await this.users.upsert({ email, role: 'free' });
+          user.role = 'free';
+        }
+      } else {
+        // PRO user missing expiry (likely migrated or manual entry), set default 1 month
+        const expiry = new Date();
+        expiry.setMonth(expiry.getMonth() + 1);
+        const expiryStr = expiry.toISOString();
+        console.log(`User ${email} is PRO but missing expiry. Setting to ${expiryStr}`);
+        await this.users.upsert({ email, subscription_expiry: expiryStr });
+        user.subscription_expiry = expiryStr;
       }
     }
 

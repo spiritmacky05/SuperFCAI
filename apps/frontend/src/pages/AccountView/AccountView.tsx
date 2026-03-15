@@ -219,7 +219,12 @@ Thank you for supporting Super FC AI!
             {user.role === 'pro' ? (
               (() => {
                 const now = new Date();
-                const expiry = new Date(user.subscription_expiry || '');
+                const expiry = user.subscription_expiry ? new Date(user.subscription_expiry) : null;
+                
+                if (!expiry || isNaN(expiry.getTime())) {
+                  return "30 DAYS LEFT TILL NEXT PAYMENT"; // Default fallback
+                }
+
                 const diffTime = Math.max(0, expiry.getTime() - now.getTime());
                 const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
                 return `${diffDays} DAYS LEFT TILL NEXT PAYMENT`;
@@ -264,7 +269,7 @@ Thank you for supporting Super FC AI!
               }`}>
                 {user.role === 'pro' ? 'SUBSCRIBED' : `${user.role} PLAN`}
               </span>
-              {user.subscription_expiry && (
+              {user.subscription_expiry && !isNaN(new Date(user.subscription_expiry).getTime()) && (
                 <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-tangerine/10 border border-tangerine/30 text-tangerine text-xs font-bold uppercase tracking-wider">
                   Expires: {new Date(user.subscription_expiry).toLocaleDateString()}
                 </span>
