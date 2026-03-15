@@ -51,8 +51,8 @@ export const helmetMiddleware = helmet({
   contentSecurityPolicy: {
     directives: {
       ...helmet.contentSecurityPolicy.getDefaultDirectives(),
-      "script-src": ["'self'", "'unsafe-inline'", "https://pagead2.googlesyndication.com"],
-      "script-src-elem": ["'self'", "'unsafe-inline'", "https://pagead2.googlesyndication.com", "https://*.google.com"],
+      "script-src": ["'self'", "'unsafe-inline'", "https://pagead2.googlesyndication.com", "https://*.adtrafficquality.google"],
+      "script-src-elem": ["'self'", "'unsafe-inline'", "https://pagead2.googlesyndication.com", "https://*.google.com", "https://*.adtrafficquality.google"],
       "frame-src": ["'self'", "https://googleads.g.doubleclick.net", "https://*.google.com", "https://*.googlesyndication.com"],
       "img-src": ["'self'", "data:", "https://pagead2.googlesyndication.com", "https://*.google.com"],
       "connect-src": ["'self'", "https://*.google.com", "https://*.analytics.google.com", "https://*.googlesyndication.com", "https://*.adtrafficquality.google"],
@@ -88,11 +88,7 @@ export const errorHandler = (err: any, _req: Request, res: Response, _next: Next
 
   const isProduction = env.nodeEnv === 'production';
   if (err && !String(err.message || '').includes('CORS policy')) {
-    try {
-      const fs = require('fs');
-      fs.appendFileSync('/tmp/backend.log', `${new Date().toISOString()} - SERVER ERROR: ${err.stack || err.message || err}\n`);
-    } catch {}
-    console.error('SERVER ERROR:', err);
+    console.error('SERVER ERROR:', err.stack || err.message || err);
   }
   const message = isProduction ? 'Internal server error' : err?.message || 'Internal server error';
   return res.status(500).json({ error: message });
