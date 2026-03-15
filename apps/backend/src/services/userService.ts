@@ -48,7 +48,8 @@ export class UserService {
       if (user.subscription_expiry) {
         const expiry = new Date(user.subscription_expiry);
         if (expiry < new Date()) {
-          console.log(`User ${email} subscription expired. Downgrading to free.`);
+          const maskedEmail = email.replace(/(.{2})(.*)(@.*)/, "$1***$3");
+          console.log(`User ${maskedEmail} subscription expired. Downgrading to free.`);
           await this.users.upsert({ email, role: 'free' });
           user.role = 'free';
         }
@@ -57,7 +58,8 @@ export class UserService {
         const expiry = new Date();
         expiry.setMonth(expiry.getMonth() + 1);
         const expiryStr = expiry.toISOString();
-        console.log(`User ${email} is PRO but missing expiry. Setting to ${expiryStr}`);
+        const maskedEmail = email.replace(/(.{2})(.*)(@.*)/, "$1***$3");
+        console.log(`User ${maskedEmail} is PRO but missing expiry. Setting to ${expiryStr}`);
         await this.users.upsert({ email, subscription_expiry: expiryStr });
         user.subscription_expiry = expiryStr;
       }
@@ -104,10 +106,11 @@ export class UserService {
   }
 
   async uploadProofOfPayment(email: string, filePath: string) {
-    console.log(`Uploading proof for ${email}: ${filePath}`);
+    const maskedEmail = email.replace(/(.{2})(.*)(@.*)/, "$1***$3");
+    console.log(`Uploading proof for ${maskedEmail}: ${filePath}`);
     try {
       const result = await this.users.updatePaymentStatus(email, 'pending', filePath);
-      console.log(`Update proof result:`, result);
+      console.log(`Update proof result for ${maskedEmail} success`);
       return result;
     } catch (err: any) {
       console.error(`FAILED to update payment status in DB:`, err);

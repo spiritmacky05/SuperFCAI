@@ -1,4 +1,5 @@
 FROM node:20-alpine
+RUN apk add --no-cache sqlite
 
 WORKDIR /app
 
@@ -13,6 +14,9 @@ RUN npm ci
 # Copy project files and build frontend assets
 COPY . .
 RUN npm run build -w @superfcai/frontend
+
+# Ensure data and upload directories exist
+RUN mkdir -p /app/data /app/apps/backend/uploads
 
 ENV NODE_ENV=production
 ENV PORT=3001

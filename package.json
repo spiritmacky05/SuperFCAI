@@ -19,7 +19,8 @@
     "start": "npm run start -w @superfcai/backend",
     "start:frontend": "npm run preview -w @superfcai/frontend",
     "start:backend": "npm run start -w @superfcai/backend",
-    "lint": "npm run lint -ws --if-present"
+    "lint": "npm run lint -ws --if-present",
+    "backup": "./scripts/backup.sh"
   },
   "devDependencies": {
     "concurrently": "^9.2.1"
