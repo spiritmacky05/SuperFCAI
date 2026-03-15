@@ -51,10 +51,10 @@ export const helmetMiddleware = helmet({
   contentSecurityPolicy: {
     directives: {
       ...helmet.contentSecurityPolicy.getDefaultDirectives(),
-      "script-src": ["'self'", "'unsafe-inline'", "https://pagead2.googlesyndication.com", "https://*.adtrafficquality.google"],
-      "script-src-elem": ["'self'", "'unsafe-inline'", "https://pagead2.googlesyndication.com", "https://*.google.com", "https://*.adtrafficquality.google"],
-      "frame-src": ["'self'", "https://googleads.g.doubleclick.net", "https://*.google.com", "https://*.googlesyndication.com"],
-      "img-src": ["'self'", "data:", "https://pagead2.googlesyndication.com", "https://*.google.com"],
+      "script-src": ["'self'", "'unsafe-inline'", "https://pagead2.googlesyndication.com", "https://*.google.com", "https://*.adtrafficquality.google", "https://*.googlesyndication.com"],
+      "script-src-elem": ["'self'", "'unsafe-inline'", "https://pagead2.googlesyndication.com", "https://*.google.com", "https://*.adtrafficquality.google", "https://*.googlesyndication.com"],
+      "frame-src": ["'self'", "https://googleads.g.doubleclick.net", "https://*.google.com", "https://*.googlesyndication.com", "https://*.adtrafficquality.google", "https://ep2.adtrafficquality.google"],
+      "img-src": ["'self'", "data:", "https://pagead2.googlesyndication.com", "https://*.google.com", "https://*.googlesyndication.com"],
       "connect-src": ["'self'", "https://*.google.com", "https://*.analytics.google.com", "https://*.googlesyndication.com", "https://*.adtrafficquality.google"],
     },
   },
