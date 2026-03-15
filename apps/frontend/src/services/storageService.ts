@@ -82,7 +82,7 @@ export const storageService = {
         body: JSON.stringify({ email, password })
       });
       
-      if (response.status === 401) return null;
+      // Don't return null on 401, let it fall through to handle JSON error message
       if (!response.ok) {
         const errData = await response.json().catch(() => ({}));
         throw new Error(errData.error || `Server Error (${response.status})`);
