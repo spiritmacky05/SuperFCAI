@@ -4,7 +4,7 @@ import SearchForm from '../../components/SearchForm';
 import ResultDisplay from '../../components/ResultDisplay';
 import ChatBox from '../../components/ChatBox';
 import NTCGenerator from '../../components/NTCGenerator';
-import AdComponent from '../../components/AdComponent';
+import AdBanner from '../../components/AdBanner';
 
 interface ReportGenProps {
   params: SearchParams;
@@ -49,7 +49,7 @@ export const MainView: React.FC<MainViewProps> = ({ user, reportGen, setIsAssist
             </div>
           </div>
 
-          {user.role === 'free' && <AdComponent />}
+          <AdBanner userRole={user.role} position="sidebar" />
 
           <SearchForm 
             params={params} 

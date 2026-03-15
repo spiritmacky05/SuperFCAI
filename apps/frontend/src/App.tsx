@@ -8,6 +8,7 @@ import AccountView from './pages/AccountView';
 import AuthView from './pages/AuthView';
 import PWAInstallPrompt from './components/PWAInstallPrompt';
 import MainView from './pages/MainView';
+import AdBanner from './components/AdBanner';
 import { SavedReport } from './types';
 import { Menu, X, Search, History, Shield, User as UserIcon, LogOut } from 'lucide-react';
 import { useToast } from './components/ToastContext';
@@ -190,6 +191,7 @@ const App: React.FC = () => {
         <span className="text-3xl group-hover:rotate-12 transition-transform">🤖</span>
       </button>
 
+      <AdBanner userRole={user.role} position="bottom" />
     </div>
   );
 };
