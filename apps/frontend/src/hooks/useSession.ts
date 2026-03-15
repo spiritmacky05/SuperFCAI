@@ -7,7 +7,9 @@ export const useSession = () => {
   // Check for existing session on load
   useEffect(() => {
     const savedUser = localStorage.getItem('user');
-    if (savedUser) {
+    const savedSession = localStorage.getItem('session_id');
+    
+    if (savedUser && savedSession) {
       try {
         const parsedUser = JSON.parse(savedUser);
         setUser(parsedUser);
@@ -16,6 +18,10 @@ export const useSession = () => {
         localStorage.removeItem('user');
         localStorage.removeItem('session_id');
       }
+    } else {
+      // If one is missing, clear both to be safe
+      localStorage.removeItem('user');
+      localStorage.removeItem('session_id');
     }
   }, []);
 

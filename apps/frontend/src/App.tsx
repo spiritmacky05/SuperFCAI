@@ -4,6 +4,7 @@ import HistoryView from './pages/HistoryView';
 import AssistantModal from './components/AssistantModal';
 import AdminView from './pages/AdminView';
 import DrawerNavigation from './components/DrawerNavigation';
+import { storageService } from './services/storageService';
 import AccountView from './pages/AccountView';
 import AuthView from './pages/AuthView';
 import PWAInstallPrompt from './components/PWAInstallPrompt';
@@ -55,10 +56,7 @@ const App: React.FC = () => {
 
       try {
         const response = await fetch('/api/login/status', {
-          headers: {
-            'X-User-Email': user.email,
-            'X-Session-Id': sessionId
-          }
+          headers: storageService.getAuthHeaders()
         });
 
         if (response.status === 401) {
@@ -209,7 +207,6 @@ const App: React.FC = () => {
           <AdminView currentUser={user} />
         ) : view === 'history' ? (
           <HistoryView 
-            email={user.email} 
             onSelect={handleSelectHistory} 
             onBack={() => setView('main')}
           />

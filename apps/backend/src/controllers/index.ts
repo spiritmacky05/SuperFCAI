@@ -5,3 +5,4 @@ export * from './errorReportController.ts';
 export * from './paymongoController.ts';
 export * from './aiController.ts';
 export * from './healthController.ts';
+export * from './diagController.ts';

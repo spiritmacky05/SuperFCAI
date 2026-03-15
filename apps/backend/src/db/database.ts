@@ -180,6 +180,63 @@ export class SQLiteDB implements DB {
       migrateToV1();
     }
 
+    // Migration V2 - Standardize snake_case columns
+    const migrationV2Applied = this.db.prepare('SELECT 1 FROM schema_migrations WHERE version = 2').get();
+    if (!migrationV2Applied) {
+      const migrateToV2 = this.db.transaction(() => {
+        this.db.pragma('foreign_keys = OFF');
+        this.db.exec(`
+          ALTER TABLE users RENAME TO users_v1;
+          CREATE TABLE users (
+            email TEXT PRIMARY KEY,
+            name TEXT NOT NULL DEFAULT '',
+            role TEXT NOT NULL DEFAULT 'free' CHECK (role IN ('free', 'pro', 'admin', 'super_admin')),
+            password TEXT NOT NULL,
+            bfp_id_url TEXT,
+            status TEXT NOT NULL DEFAULT 'approved' CHECK (status IN ('pending', 'approved', 'rejected')),
+            bfp_account_number TEXT UNIQUE,
+            proof_of_payment_url TEXT,
+            payment_status TEXT CHECK (payment_status IN ('none', 'pending', 'approved', 'rejected')) NOT NULL DEFAULT 'none',
+            subscription_expiry DATETIME,
+            last_payment_date DATETIME,
+            usage_reset_date DATETIME,
+            session_id TEXT
+          );
+          INSERT INTO users (
+            email, name, role, password, bfp_id_url, status, bfp_account_number, 
+            proof_of_payment_url, payment_status, subscription_expiry, last_payment_date, usage_reset_date, session_id
+          )
+          SELECT
+            email, name, role, password, bfp_id_url, status, bfp_account_number, 
+            proofOfPaymentUrl, paymentStatus, subscription_expiry, last_payment_date, usage_reset_date, session_id
+          FROM users_v1;
+          DROP TABLE users_v1;
+          INSERT INTO schema_migrations (version) VALUES (2);
+        `);
+        this.db.pragma('foreign_keys = ON');
+      });
+      migrateToV2();
+    }
+
+    // Migration V3 - Normalizing all emails to lowercase in the database
+    const migrationV3Applied = this.db.prepare('SELECT 1 FROM schema_migrations WHERE version = 3').get();
+    if (!migrationV3Applied) {
+      const migrateToV3 = this.db.transaction(() => {
+        this.db.pragma('foreign_keys = OFF');
+        this.db.exec(`
+          UPDATE users SET email = LOWER(TRIM(email));
+          UPDATE reports SET email = LOWER(TRIM(email));
+          UPDATE error_reports SET user_email = LOWER(TRIM(user_email));
+          UPDATE payments SET user_email = LOWER(TRIM(user_email));
+          
+          INSERT INTO schema_migrations (version) VALUES (3);
+        `);
+        this.db.pragma('foreign_keys = ON');
+      });
+      migrateToV3();
+      console.log('Migration V3: Lowercased all database emails.');
+    }
+
     this.db.exec(`
       CREATE INDEX IF NOT EXISTS idx_users_status ON users(status);
       CREATE INDEX IF NOT EXISTS idx_reports_email_timestamp ON reports(email, timestamp DESC);

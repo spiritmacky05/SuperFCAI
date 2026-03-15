@@ -53,14 +53,11 @@ const AdminView: React.FC<AdminViewProps> = ({ currentUser }) => {
     setUsers(fetchedUsers.sort((a, b) => (a.name > b.name ? 1 : -1)));
     
     try {
-      const res = await fetch('/api/error-reports');
-      if (res.ok) {
-        const data = await res.json();
-        if (errorReports.length > 0 && data.length > errorReports.length) {
-          showToast('New AI Error Report received!', 'info');
-        }
-        setErrorReports(data);
+      const data = await storageService.getErrorReports();
+      if (errorReports.length > 0 && data.length > errorReports.length) {
+        showToast('New AI Error Report received!', 'info');
       }
+      setErrorReports(data);
     } catch (e) {
       console.error('Failed to fetch error reports:', e);
     }
@@ -82,7 +79,7 @@ const AdminView: React.FC<AdminViewProps> = ({ currentUser }) => {
     const updatedUser: User = { 
       ...verifyingUser, 
       role: 'pro', 
-      paymentStatus: 'approved',
+      payment_status: 'approved',
       status: 'approved' 
     };
     await storageService.saveUser(updatedUser);
@@ -94,7 +91,7 @@ const AdminView: React.FC<AdminViewProps> = ({ currentUser }) => {
 
   const handleDisapprovePayment = async () => {
     if (!verifyingUser) return;
-    const updatedUser: User = { ...verifyingUser, paymentStatus: 'rejected' };
+    const updatedUser: User = { ...verifyingUser, payment_status: 'rejected' };
     await storageService.saveUser(updatedUser);
     showToast(`Payment rejected for ${verifyingUser.email}`, 'info');
     setIsPaymentModalOpen(false);
@@ -104,15 +101,9 @@ const AdminView: React.FC<AdminViewProps> = ({ currentUser }) => {
 
   const handleUpdateReportStatus = async (id: number, status: 'pending' | 'evaluated') => {
     try {
-      const res = await fetch(`/api/error-reports/${id}/status`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status })
-      });
-      if (res.ok) {
-        showToast(`Report marked as ${status}`, 'success');
-        fetchData();
-      }
+      await storageService.updateErrorReportStatus(id, status);
+      showToast(`Report marked as ${status}`, 'success');
+      fetchData();
     } catch (e) {
       showToast('Failed to update report status', 'error');
     }
@@ -122,11 +113,9 @@ const AdminView: React.FC<AdminViewProps> = ({ currentUser }) => {
     const isConfirmed = await confirm('Are you sure you want to delete this report?');
     if (!isConfirmed) return;
     try {
-      const res = await fetch(`/api/error-reports/${id}`, { method: 'DELETE' });
-      if (res.ok) {
-        showToast('Report deleted successfully', 'success');
-        fetchData();
-      }
+      await storageService.deleteErrorReport(id);
+      showToast('Report deleted successfully', 'success');
+      fetchData();
     } catch (e) {
       showToast('Failed to delete report', 'error');
     }

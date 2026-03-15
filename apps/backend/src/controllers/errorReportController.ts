@@ -15,7 +15,11 @@ export class ErrorReportController {
 
   create = async (req: Request, res: Response) => {
     try {
-      const result = await this.reports.create(req.body);
+      const body = { ...req.body };
+      if (!body.user_email && req.headers['x-user-email']) {
+        body.user_email = (req.headers['x-user-email'] as string).toLowerCase().trim();
+      }
+      const result = await this.reports.create(body);
       res.status(result.status).json(result.payload);
     } catch (err: any) {
       res.status(500).json({ error: err.message });

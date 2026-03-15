@@ -18,6 +18,7 @@ import {
   PaymongoController,
   AiController,
   HealthController,
+  DiagController,
 } from './controllers/index.ts';
 
 export const buildContainer = (db: DB) => {
@@ -44,6 +45,7 @@ export const buildContainer = (db: DB) => {
       paymongo: new PaymongoController(paymongoService),
       ai: new AiController(aiService, userService, reportService),
       health: new HealthController(db, aiService),
+      diag: new DiagController(db),
     },
   };
 };

@@ -15,6 +15,20 @@ export class UserService {
 
   async upsertUser(body: any) {
     const payload = { ...body };
+    if (payload.email) {
+      payload.email = payload.email.toLowerCase().trim();
+    }
+    
+    // Normalize legacy camelCase fields to snake_case for the model
+    if (payload.paymentStatus) {
+      payload.payment_status = payload.paymentStatus;
+      delete payload.paymentStatus;
+    }
+    if (payload.proofOfPaymentUrl) {
+      payload.proof_of_payment_url = payload.proofOfPaymentUrl;
+      delete payload.proofOfPaymentUrl;
+    }
+
     if (payload.password && typeof payload.password === 'string') {
       payload.password = await hashPassword(payload.password);
     }
@@ -22,7 +36,7 @@ export class UserService {
   }
 
   async login(emailStr: string, passwordStr: string) {
-    const email = (emailStr || '').trim();
+    const email = (emailStr || '').toLowerCase().trim();
     const password = (passwordStr || '').trim();
 
     console.log(`[AUTH] Login attempt for: "${email}" (Password length: ${password.length})`);
@@ -121,10 +135,11 @@ export class UserService {
   }
 
   async uploadProofOfPayment(email: string, filePath: string) {
-    const maskedEmail = email.replace(/(.{2})(.*)(@.*)/, "$1***$3");
+    const normalizedEmail = (email || '').toLowerCase().trim();
+    const maskedEmail = normalizedEmail.replace(/(.{2})(.*)(@.*)/, "$1***$3");
     console.log(`Uploading proof for ${maskedEmail}: ${filePath}`);
     try {
-      const result = await this.users.updatePaymentStatus(email, 'pending', filePath);
+      const result = await this.users.updatePaymentStatus(normalizedEmail, 'pending', filePath);
       console.log(`Update proof result for ${maskedEmail} success`);
       return result;
     } catch (err: any) {
@@ -134,10 +149,27 @@ export class UserService {
   }
 
   async verifySession(email: string, sessionId: string): Promise<boolean> {
-    const matches = await this.users.getByEmail(email);
-    if (matches.length === 0) return false;
+    const { isValid } = await this.verifySessionWithReason(email, sessionId);
+    return isValid;
+  }
+
+  async verifySessionWithReason(email: string, sessionId: string): Promise<{ isValid: boolean; reason?: 'USER_NOT_FOUND' | 'SESSION_MISMATCH' }> {
+    const normalizedEmail = (email || '').toLowerCase().trim();
+    const matches = await this.users.getByEmail(normalizedEmail);
+    
+    console.log(`[AUTH-DEBUG] Verifying session for ${normalizedEmail}. DB matches: ${matches.length}`);
+    
+    if (matches.length === 0) {
+      return { isValid: false, reason: 'USER_NOT_FOUND' };
+    }
     const user = matches[0];
-    return user.session_id === sessionId;
+    const match = user.session_id === sessionId;
+    console.log(`[AUTH-DEBUG] Session comparison: stored="${user.session_id?.substring(0,8)}...", received="${sessionId?.substring(0,8)}...", match=${match}`);
+    
+    if (user.session_id !== sessionId) {
+      return { isValid: false, reason: 'SESSION_MISMATCH' };
+    }
+    return { isValid: true };
   }
 
   deleteUser(email: string) {

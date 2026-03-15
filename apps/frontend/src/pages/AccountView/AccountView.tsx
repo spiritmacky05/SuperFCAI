@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { User } from '../../types';
+import { storageService } from '../../services/storageService';
 import { Shield, Zap, BarChart, Settings as SettingsIcon, CreditCard, Check, AlertTriangle, Send, Upload } from 'lucide-react';
 import { useToast } from '../../components/ToastContext';
 
@@ -36,7 +37,9 @@ const AccountView: React.FC<AccountViewProps> = ({ user }) => {
   useEffect(() => {
     const fetchUsage = async () => {
       try {
-        const response = await fetch(`/api/usage-analytics?email=${user.email}`);
+        const response = await fetch('/api/usage-analytics', {
+          headers: storageService.getAuthHeaders()
+        });
         if (response.ok) {
           const data = await response.json();
           setUsageCount(data.weeklyCount || 0);
@@ -71,12 +74,12 @@ const AccountView: React.FC<AccountViewProps> = ({ user }) => {
 
     setIsUploadingProof(true);
     const formData = new FormData();
-    formData.append('email', user.email);
     formData.append('proof', proofOfPayment);
 
     try {
       const response = await fetch('/api/users/upload-proof-of-payment', {
         method: 'POST',
+        headers: storageService.getAuthHeaders(true), // Content-Type: multipart/form-data
         body: formData,
       });
 
@@ -108,9 +111,8 @@ const AccountView: React.FC<AccountViewProps> = ({ user }) => {
     try {
       const response = await fetch('/api/error-reports', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: storageService.getAuthHeaders(),
         body: JSON.stringify({
-          user_email: user.email,
           cited_error: citedError,
           actual_correction: actualCorrection
         })
@@ -147,7 +149,9 @@ const AccountView: React.FC<AccountViewProps> = ({ user }) => {
     const fetchPayments = async () => {
       setIsLoadingPayments(true);
       try {
-        const response = await fetch(`/api/users/${user.email}/payments`);
+        const response = await fetch('/api/me/payments', {
+          headers: storageService.getAuthHeaders()
+        });
         if (response.ok) {
           const data = await response.json();
           setPayments(data);

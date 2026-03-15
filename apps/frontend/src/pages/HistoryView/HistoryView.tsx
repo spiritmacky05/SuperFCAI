@@ -4,12 +4,11 @@ import { storageService } from '../../services/storageService';
 import { Clock, ArrowLeft, FileText, ChevronRight, Calendar, Building, Loader2 } from 'lucide-react';
 
 interface HistoryViewProps {
-  email: string;
   onSelect: (report: SavedReport) => void;
   onBack: () => void;
 }
 
-const HistoryView: React.FC<HistoryViewProps> = ({ email, onSelect, onBack }) => {
+const HistoryView: React.FC<HistoryViewProps> = ({ onSelect, onBack }) => {
   const [reports, setReports] = useState<SavedReport[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -17,7 +16,7 @@ const HistoryView: React.FC<HistoryViewProps> = ({ email, onSelect, onBack }) =>
     const fetchReports = async () => {
       setIsLoading(true);
       try {
-        const data = await storageService.getReports(email);
+        const data = await storageService.getReports();
         // Filter out background usage logs from history
         const filtered = data.filter((r: SavedReport) => r.result !== 'INTERNAL_USAGE_LOG');
         setReports(filtered);
@@ -29,7 +28,7 @@ const HistoryView: React.FC<HistoryViewProps> = ({ email, onSelect, onBack }) =>
     };
 
     fetchReports();
-  }, [email]);
+  }, []);
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">

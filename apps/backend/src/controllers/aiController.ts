@@ -12,7 +12,9 @@ export class AiController {
 
   generateContent = async (req: Request, res: Response) => {
     try {
-      const { email, prompt } = req.body;
+      const requestedEmail = req.body.email || req.headers['x-user-email'];
+      const email = typeof requestedEmail === 'string' ? requestedEmail.toLowerCase().trim() : null;
+      const { prompt } = req.body;
       
       // Limit check for free users
       if (email) {
@@ -30,10 +32,10 @@ export class AiController {
       
       // Log usage for tracking
       if (email) {
-        await this.reportService.save(email, {
+        await this.reportService.save(email as string, {
           id: `usage-${Date.now()}`,
           timestamp: Date.now(),
-          params: JSON.stringify({ type: 'content_generation', prompt: prompt.substring(0, 50) }),
+          params: JSON.stringify({ type: 'content_generation', prompt: (req.body.prompt || '').substring(0, 50) }),
           result: 'INTERNAL_USAGE_LOG'
         });
       }
@@ -47,7 +49,9 @@ export class AiController {
 
   generateFireSafetyReport = async (req: Request, res: Response) => {
     try {
-      const { email, params } = req.body;
+      const requestedEmail = req.body.email || req.headers['x-user-email'];
+      const email = typeof requestedEmail === 'string' ? requestedEmail.toLowerCase().trim() : null;
+      const { params } = req.body;
 
       // Limit check for free users
       if (email) {
@@ -65,7 +69,7 @@ export class AiController {
 
       // Log usage for tracking
       if (email) {
-        await this.reportService.save(email, {
+        await this.reportService.save(email as string, {
           id: `report-${Date.now()}`,
           timestamp: Date.now(),
           params: JSON.stringify({ type: 'report_generation', ...params }),

@@ -42,7 +42,7 @@ export const corsMiddleware = cors({
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-User-Email', 'X-Session-Id'],
   maxAge: 600,
 });
 
@@ -84,23 +84,43 @@ export const disablePoweredBy = (_req: Request, res: Response, next: NextFunctio
 export const createSessionAuthMiddleware = (userService: any) => {
   return async (req: Request, res: Response, next: NextFunction) => {
     // Relative paths since middleware is mounted on /api
-    const publicPaths = ['/login', '/users', '/health', '/paymongo/webhook'];
+    const publicPaths = ['/login', '/health', '/paymongo/webhook', '/diag/db-health'];
     const isPublic = publicPaths.includes(req.path) || (req.method === 'POST' && req.path === '/users');
+
+    if (req.path === '/login/status') {
+      console.log(`[AUTH-DEBUG] Headers for /login/status:`, {
+        'x-user-email': req.headers['x-user-email'],
+        'x-session-id': req.headers['x-session-id'],
+        'user-agent': req.headers['user-agent']
+      });
+    }
 
     if (isPublic) {
       return next();
     }
 
-    const email = req.headers['x-user-email'] as string;
+    const email = (req.headers['x-user-email'] as string || '').toLowerCase().trim();
     const sessionId = req.headers['x-session-id'] as string;
 
     if (!email || !sessionId) {
-      return res.status(401).json({ error: 'SESSION ERROR: Access ID or Session ID missing. Please log in again.' });
+      console.warn(`[AUTH] Unauthorized: Missing headers. Email: ${!!email}, Session: ${!!sessionId}`);
+      return res.status(401).json({ 
+        error: 'SESSION ERROR: Access ID or Session ID missing.',
+        code: 'MISSING_HEADERS',
+        debug: { hasEmail: !!email, hasSessionId: !!sessionId }
+      });
     }
 
-    const isValid = await userService.verifySession(email, sessionId);
+    const { isValid, reason } = await userService.verifySessionWithReason(email, sessionId);
     if (!isValid) {
-      return res.status(401).json({ error: 'SESSION EXPIRED: Your account has been logged in on another device.' });
+      console.warn(`[AUTH] Unauthorized: ${reason} for ${email}. SessionID received: ${sessionId?.substring(0, 8)}...`);
+      return res.status(401).json({ 
+        error: reason === 'USER_NOT_FOUND' 
+          ? 'USER ERROR: Your account was not found in the database. Please register or log in again.'
+          : 'SESSION EXPIRED: Your account has been logged in on another device or session has expired.',
+        code: reason,
+        email: email
+      });
     }
 
     next();

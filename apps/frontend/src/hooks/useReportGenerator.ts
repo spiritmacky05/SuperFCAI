@@ -25,7 +25,7 @@ export const useReportGenerator = (user: User | null) => {
       const currentCount = parseInt(localStorage.getItem('gemini_usage_count') || '0', 10);
       localStorage.setItem('gemini_usage_count', (currentCount + 1).toString());
 
-      const response = await generateFireSafetyReport(params, user?.email);
+      const response = await generateFireSafetyReport(params);
       setResult(response.markdown);
       
       const report: SavedReport = {
@@ -34,7 +34,7 @@ export const useReportGenerator = (user: User | null) => {
         params: { ...params },
         result: response.markdown
       };
-      await storageService.saveReport(user.email, report);
+      await storageService.saveReport(report);
     } catch (err: any) {
       console.error(err);
       setError(err instanceof Error ? err.message : "Unable to generate report. Please check your connection and API key.");
