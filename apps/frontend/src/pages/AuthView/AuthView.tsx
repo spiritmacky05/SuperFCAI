@@ -25,11 +25,15 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin }) => {
     setError('');
 
     if (isLogin) {
-      const user = await storageService.login(formData.email, formData.password);
-      if (user) {
-        onLogin(user);
-      } else {
-        setError('ACCESS DENIED: Invalid credentials');
+      try {
+        const user = await storageService.login(formData.email, formData.password);
+        if (user) {
+          onLogin(user);
+        } else {
+          setError('ACCESS DENIED: Invalid credentials');
+        }
+      } catch (err: any) {
+        setError(`CONNECTION ERROR: ${err.message || 'Check your internet or server status'}`);
       }
     } else {
       if (!formData.name) {

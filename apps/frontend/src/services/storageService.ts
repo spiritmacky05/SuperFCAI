@@ -83,12 +83,15 @@ export const storageService = {
       });
       
       if (response.status === 401) return null;
-      if (!response.ok) throw new Error('Login failed');
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.error || `Server Error (${response.status})`);
+      }
       
       return await response.json();
-    } catch (e) {
+    } catch (e: any) {
       console.error('login error:', e);
-      return null;
+      throw e;
     }
   },
 

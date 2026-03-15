@@ -194,26 +194,16 @@ export class SQLiteDB implements DB {
 
     this.db
       .prepare(`
-        INSERT INTO users (email, name, role, password, status)
+        INSERT OR IGNORE INTO users (email, name, role, password, status)
         VALUES (?, ?, ?, ?, ?)
-        ON CONFLICT(email) DO UPDATE SET
-          name = excluded.name,
-          role = excluded.role,
-          password = excluded.password,
-          status = excluded.status
       `)
       .run('admin@bfp.gov.ph', 'Super Admin', 'admin', seedPasswordHash, 'approved');
     console.log('Ensured admin@bfp.gov.ph seed account');
 
     this.db
       .prepare(`
-        INSERT INTO users (email, name, role, password, status)
+        INSERT OR IGNORE INTO users (email, name, role, password, status)
         VALUES (?, ?, ?, ?, ?)
-        ON CONFLICT(email) DO UPDATE SET
-          name = excluded.name,
-          role = excluded.role,
-          password = excluded.password,
-          status = excluded.status
       `)
       .run(seedSuperAdminEmail, 'Spirit Macky', 'super_admin', seedPasswordHash, 'approved');
     console.log(`Ensured ${seedSuperAdminEmail} super_admin seed account`);
