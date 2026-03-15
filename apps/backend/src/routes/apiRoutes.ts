@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import multer from 'multer';
 import path from 'path';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { AppContainer } from '../container.ts';
 import { authRateLimit } from '../middleware/security.ts';
