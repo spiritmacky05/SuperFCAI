@@ -4,21 +4,26 @@
 
 echo "🚀 Starting Deployment..."
 
-# 1. Pull latest code
+# 1. Pull latest code from the current branch
 echo "📥 Pulling latest changes from git..."
-git pull origin production
+CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+git pull origin "$CURRENT_BRANCH" --ff-only || {
+    echo "⚠️ Git pull failed. This usually happens if the server history diverged."
+    echo "💡 Try running: git reset --hard origin/$CURRENT_BRANCH"
+    exit 1
+}
 
-# 2. Build the new image (does not stop existing containers)
-echo "🏗️ Building new Docker images..."
+# 2. Build the new image
+echo "🏗️ Building new Docker images for $CURRENT_BRANCH..."
 docker compose build superfcai
 
-# 3. Recreate the container in place
-# --no-deps: only affects the specified service
+# 3. Recreate the container in place (Detached)
 echo "🔄 Swapping containers..."
-docker compose up --no-deps superfcai
+docker compose up -d --no-deps superfcai
 
 # 4. Cleanup old images to save disk space
 echo "🧹 Cleaning up old images..."
 docker image prune -f
 
-echo "✅ Deployment complete! The app was updated with minimal downtime."
+echo "✅ App updated! Streaming logs now (Press Ctrl+C to stop viewing logs, the app will stay running)..."
+docker compose logs -f superfcai --tail 50
