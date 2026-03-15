@@ -22,11 +22,17 @@ export class SQLiteDB implements DB {
     this.db.exec(`
       CREATE TABLE IF NOT EXISTS users (
         email TEXT PRIMARY KEY,
-        name TEXT,
-        role TEXT,
-        password TEXT,
+        name TEXT NOT NULL DEFAULT '',
+        role TEXT NOT NULL DEFAULT 'free' CHECK (role IN ('free', 'pro', 'admin', 'super_admin')),
+        password TEXT NOT NULL,
+        bfp_id_url TEXT,
+        status TEXT NOT NULL DEFAULT 'approved' CHECK (status IN ('pending', 'approved', 'rejected')),
+        bfp_account_number TEXT UNIQUE,
         proofOfPaymentUrl TEXT,
-        paymentStatus TEXT CHECK (paymentStatus IN ('none', 'pending', 'approved', 'rejected')) NOT NULL DEFAULT 'none'
+        paymentStatus TEXT CHECK (paymentStatus IN ('none', 'pending', 'approved', 'rejected')) NOT NULL DEFAULT 'none',
+        subscription_expiry DATETIME,
+        last_payment_date DATETIME,
+        usage_reset_date DATETIME
       );
       CREATE TABLE IF NOT EXISTS reports (
         id TEXT PRIMARY KEY,
@@ -66,38 +72,7 @@ export class SQLiteDB implements DB {
       );
     `);
 
-    try {
-      this.db.exec('ALTER TABLE users ADD COLUMN subscription_expiry DATETIME');
-    } catch {}
-
-    try {
-      this.db.exec('ALTER TABLE users ADD COLUMN last_payment_date DATETIME');
-    } catch {}
-
-    try {
-      this.db.exec('ALTER TABLE users ADD COLUMN usage_reset_date DATETIME');
-    } catch {}
-
-    try {
-      this.db.exec('ALTER TABLE users ADD COLUMN bfp_id_url TEXT');
-    } catch {}
-
-    try {
-      this.db.exec('ALTER TABLE users ADD COLUMN status TEXT DEFAULT "approved"');
-    } catch {}
-
-    try {
-      this.db.exec('ALTER TABLE users ADD COLUMN bfp_account_number TEXT');
-    } catch {}
-
-    try {
-      this.db.exec('ALTER TABLE users ADD COLUMN proofOfPaymentUrl TEXT');
-    } catch {}
-
-    try {
-      this.db.exec("ALTER TABLE users ADD COLUMN paymentStatus TEXT CHECK (paymentStatus IN ('none', 'pending', 'approved', 'rejected')) NOT NULL DEFAULT 'none'");
-    } catch {}
-
+    // Migration V1 - Ensure modern schema structure and constraints
     const migrationV1Applied = this.db.prepare('SELECT 1 FROM schema_migrations WHERE version = 1').get();
     if (!migrationV1Applied) {
       const migrateToV1 = this.db.transaction(() => {
@@ -114,9 +89,15 @@ export class SQLiteDB implements DB {
             status TEXT NOT NULL DEFAULT 'approved' CHECK (status IN ('pending', 'approved', 'rejected')),
             bfp_account_number TEXT UNIQUE,
             proofOfPaymentUrl TEXT,
-            paymentStatus TEXT CHECK (paymentStatus IN ('none', 'pending', 'approved', 'rejected')) NOT NULL DEFAULT 'none'
+            paymentStatus TEXT CHECK (paymentStatus IN ('none', 'pending', 'approved', 'rejected')) NOT NULL DEFAULT 'none',
+            subscription_expiry DATETIME,
+            last_payment_date DATETIME,
+            usage_reset_date DATETIME
           );
-          INSERT INTO users (email, name, role, password, bfp_id_url, status, bfp_account_number, proofOfPaymentUrl, paymentStatus)
+          INSERT INTO users (
+            email, name, role, password, bfp_id_url, status, bfp_account_number, 
+            proofOfPaymentUrl, paymentStatus, subscription_expiry, last_payment_date, usage_reset_date
+          )
           SELECT
             email,
             COALESCE(name, ''),
@@ -125,8 +106,11 @@ export class SQLiteDB implements DB {
             bfp_id_url,
             CASE WHEN status IN ('pending', 'approved', 'rejected') THEN status ELSE 'approved' END,
             bfp_account_number,
-            NULL,
-            'none'
+            proofOfPaymentUrl,
+            COALESCE(paymentStatus, 'none'),
+            subscription_expiry,
+            last_payment_date,
+            usage_reset_date
           FROM users_legacy;
           DROP TABLE users_legacy;
 
