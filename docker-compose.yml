@@ -13,6 +13,7 @@ services:
       - DB_FILE=/app/data/database.sqlite
     volumes:
       - superfcai_data:/app/data
+      - ./apps/backend/uploads:/app/apps/backend/uploads
 
   caddy:
     image: caddy:2-alpine
