@@ -13,19 +13,19 @@ This guide provides the "ins and outs" of the SuperFCAI infrastructure. It cover
 
 ## 🚀 Deployment & Updates
 
-### Zero-Downtime Deployment
+### Standard Update
 
-To pull latest code and update the running app without stopping it:
+To pull latest code and rebuild the image:
 
 ```bash
 npm run deploy
 ```
 
-- **What it does:** Pulls from `production` branch → Builds a new image → Swaps the old container with the new one instantly.
+- **What it does:** Runs `git pull` followed by `docker compose up -d --build`. This is the most reliable way to update your code.
 
-### Manual Launch / Rebuild
+### Manual Rebuild (No Git Pull)
 
-If you need to start from scratch or force a full rebuild:
+If you already pulled the code and just want to rebuild:
 
 ```bash
 docker compose up -d --build
