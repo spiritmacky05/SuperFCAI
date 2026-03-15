@@ -83,7 +83,9 @@ export class UserController {
 
   uploadProofOfPayment = async (req: Request, res: Response) => {
     try {
-      const email = (req.body.email || '').toLowerCase().trim();
+      // Use header-based email identification consistent with the rest of the app
+      const email = (req.headers['x-user-email'] as string || req.body.email || '').toLowerCase().trim();
+      
       if (!email) {
         return res.status(400).json({ error: 'Email is required.' });
       }

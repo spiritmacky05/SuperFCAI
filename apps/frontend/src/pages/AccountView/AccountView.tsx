@@ -75,6 +75,7 @@ const AccountView: React.FC<AccountViewProps> = ({ user }) => {
     setIsUploadingProof(true);
     const formData = new FormData();
     formData.append('proof', proofOfPayment);
+    formData.append('email', user.email); // Add for redundancy
 
     try {
       const response = await fetch('/api/users/upload-proof-of-payment', {
