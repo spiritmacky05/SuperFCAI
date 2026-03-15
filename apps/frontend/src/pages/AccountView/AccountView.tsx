@@ -8,6 +8,22 @@ interface AccountViewProps {
 }
 
 const AccountView: React.FC<AccountViewProps> = ({ user }) => {
+  const ui = {
+    page: 'container mx-auto px-3 sm:px-4 py-6 sm:py-8 max-w-4xl animate-fade-in-up',
+    heading: 'text-xl sm:text-2xl font-display text-white mb-5 sm:mb-6 tracking-wider flex items-center gap-3',
+    grid: 'grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6',
+    panel: 'glass-panel p-5 sm:p-6 rounded-xl border border-glass',
+    textInput: 'w-full bg-obsidian/50 border border-glass rounded-lg px-4 py-2 text-white font-mono text-sm focus:border-cobalt outline-none',
+    mutedInput: 'w-full bg-obsidian/50 border border-glass rounded-lg px-4 py-2 text-muted font-mono text-sm focus:border-cobalt outline-none cursor-not-allowed',
+    upgradePanel: 'md:col-span-2 glass-panel p-5 sm:p-8 rounded-xl border border-cobalt/30 relative overflow-hidden',
+    upgradeInner: 'relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 sm:gap-8',
+    upgradeActions: 'flex-shrink-0 w-full md:w-auto',
+    upgradeButton: 'cyber-button-primary w-full md:w-auto px-6 sm:px-8 py-4 rounded-lg flex items-center justify-center gap-3 text-obsidian font-bold text-base sm:text-lg shadow-[0_0_20px_rgba(0,242,255,0.3)] hover:scale-105 transition-transform',
+    reportPanel: 'md:col-span-2 glass-panel p-5 sm:p-6 rounded-xl border border-glass',
+    uploadButton: 'cyber-button-secondary w-full md:w-auto mt-4 px-6 sm:px-8 py-3 rounded-lg flex items-center justify-center gap-3 font-bold text-base sm:text-lg hover:scale-105 transition-transform disabled:opacity-50 disabled:hover:scale-100',
+    fileInput: "block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-cobalt/10 file:text-cobalt hover:file:bg-cobalt/20",
+  };
+
   const [usageCount, setUsageCount] = useState(0);
   const [citedError, setCitedError] = useState('');
   const [actualCorrection, setActualCorrection] = useState('');
@@ -18,16 +34,23 @@ const AccountView: React.FC<AccountViewProps> = ({ user }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    const count = localStorage.getItem('gemini_usage_count');
-    if (count) {
-      setUsageCount(parseInt(count, 10));
-    }
-  }, []);
+    const fetchUsage = async () => {
+      try {
+        const response = await fetch(`/api/usage-analytics?email=${user.email}`);
+        if (response.ok) {
+          const data = await response.json();
+          setUsageCount(data.weeklyCount || 0);
+        }
+      } catch (error) {
+        console.error('Failed to fetch usage analytics:', error);
+      }
+    };
+    fetchUsage();
+  }, [user.email]);
 
   const handleUpgrade = async () => {
     try {
-      // Temporary redirect to a fixed PayMongo checkout link for Gcash
-      window.location.href = 'https://paymongo.page/l/superfcaiprosubs?fbclid=IwY2xjawQjWt1leHRuA2FlbQIxMQBzcnRjBmFwcF9pZAEwAAEeszKItN_oIRSjA-oEGLNbhRmFsijAbYOwrCYHBpTwQoD74VBhhiYpMmfnhp4_aem_Jdo-aYURwEtqgAtnQUUGwA';
+      window.open('https://paymongo.page/l/superfcaiprosubs?fbclid=IwY2xjawQjWt1leHRuA2FlbQIxMQBzcnRjBmFwcF9pZAEwAAEeszKItN_oIRSjA-oEGLNbhRmFsijAbYOwrCYHBpTwQoD74VBhhiYpMmfnhp4_aem_Jdo-aYURwEtqgAtnQUUGwA', '_blank');
     } catch (error) {
       console.error('Payment error:', error);
       showToast('Failed to initiate payment.', 'error');
@@ -110,29 +133,55 @@ const AccountView: React.FC<AccountViewProps> = ({ user }) => {
   };
 
   useEffect(() => {
-    // Check for payment success in URL parameters
     const urlParams = new URLSearchParams(window.location.search);
     const success = urlParams.get('success');
-
     if (success && user.role !== 'pro' && user.role !== 'admin' && user.role !== 'super_admin') {
       showToast('Payment successful! Please log out and log back in to activate your Pro features.', 'success');
     }
   }, [user.role, showToast]);
 
-  const ui = {
-    page: 'container mx-auto px-3 sm:px-4 py-6 sm:py-8 max-w-4xl animate-fade-in-up',
-    heading: 'text-xl sm:text-2xl font-display text-white mb-5 sm:mb-6 tracking-wider flex items-center gap-3',
-    grid: 'grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6',
-    panel: 'glass-panel p-5 sm:p-6 rounded-xl border border-glass',
-    textInput: 'w-full bg-obsidian/50 border border-glass rounded-lg px-4 py-2 text-white font-mono text-sm focus:border-cobalt outline-none',
-    mutedInput: 'w-full bg-obsidian/50 border border-glass rounded-lg px-4 py-2 text-muted font-mono text-sm focus:border-cobalt outline-none cursor-not-allowed',
-    upgradePanel: 'md:col-span-2 glass-panel p-5 sm:p-8 rounded-xl border border-cobalt/30 relative overflow-hidden',
-    upgradeInner: 'relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 sm:gap-8',
-    upgradeActions: 'flex-shrink-0 w-full md:w-auto',
-    upgradeButton: 'cyber-button-primary w-full md:w-auto px-6 sm:px-8 py-4 rounded-lg flex items-center justify-center gap-3 text-obsidian font-bold text-base sm:text-lg shadow-[0_0_20px_rgba(0,242,255,0.3)] hover:scale-105 transition-transform',
-    reportPanel: 'md:col-span-2 glass-panel p-5 sm:p-6 rounded-xl border border-glass',
-    uploadButton: 'cyber-button-secondary w-full md:w-auto mt-4 px-6 sm:px-8 py-3 rounded-lg flex items-center justify-center gap-3 font-bold text-base sm:text-lg hover:scale-105 transition-transform disabled:opacity-50 disabled:hover:scale-100',
-    fileInput: "block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-cobalt/10 file:text-cobalt hover:file:bg-cobalt/20",
+  const [payments, setPayments] = useState<any[]>([]);
+  const [isLoadingPayments, setIsLoadingPayments] = useState(false);
+
+  useEffect(() => {
+    const fetchPayments = async () => {
+      setIsLoadingPayments(true);
+      try {
+        const response = await fetch(`/api/users/${user.email}/payments`);
+        if (response.ok) {
+          const data = await response.json();
+          setPayments(data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch payments:', error);
+      } finally {
+        setIsLoadingPayments(false);
+      }
+    };
+    fetchPayments();
+  }, [user.email]);
+
+  const handleDownloadInvoice = (payment: any) => {
+    const invoiceContent = `
+INVOICE - SUPER FC AI
+---------------------
+Reference: ${payment.reference_number}
+Date: ${new Date(payment.created_at).toLocaleDateString()}
+User: ${payment.user_email}
+Amount: PHP ${payment.amount.toFixed(2)}
+Status: ${payment.status.toUpperCase()}
+
+Thank you for supporting Super FC AI!
+    `;
+    const blob = new Blob([invoiceContent], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `invoice-${payment.reference_number}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
   return (
@@ -158,15 +207,15 @@ const AccountView: React.FC<AccountViewProps> = ({ user }) => {
             <span className="text-5xl font-mono font-bold text-white">{usageCount}</span>
             <span className="text-sm text-muted mb-2 font-mono">GENERATIONS</span>
           </div>
-          <p className="text-xs text-muted font-mono">Total AI analyses initiated.</p>
+          <p className="text-xs text-muted font-mono">Total AI analyses initiated this week.</p>
           
           <div className="mt-6 w-full bg-glass h-2 rounded-full overflow-hidden">
             <div 
               className="bg-tangerine h-full rounded-full" 
-              style={{ width: `${Math.min((usageCount / 25) * 100, 100)}%` }}
+              style={{ width: `${Math.min((usageCount / 10) * 100, 100)}%` }}
             ></div>
           </div>
-          <p className="text-[10px] text-right text-muted mt-1 font-mono">Weekly Limit: 25</p>
+          <p className="text-[10px] text-right text-muted mt-1 font-mono">Weekly Limit: 10 (Free Tier)</p>
         </div>
 
         {/* Profile Section */}
@@ -195,10 +244,15 @@ const AccountView: React.FC<AccountViewProps> = ({ user }) => {
                 className={ui.mutedInput}
               />
             </div>
-            <div className="pt-2">
+            <div className="pt-2 flex flex-wrap gap-2">
               <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cobalt/10 border border-cobalt/30 text-cobalt text-xs font-bold uppercase tracking-wider">
                 {user.role} PLAN
               </span>
+              {user.subscription_expiry && (
+                <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-tangerine/10 border border-tangerine/30 text-tangerine text-xs font-bold uppercase tracking-wider">
+                  Expires: {new Date(user.subscription_expiry).toLocaleDateString()}
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -212,14 +266,14 @@ const AccountView: React.FC<AccountViewProps> = ({ user }) => {
                 <Zap className="text-yellow-400 fill-yellow-400" />
                 UPGRADE TO PRO
               </h3>
-              <p className="text-muted mb-6">Unlock advanced features and higher usage limits for only 99 pesos per month. This minimal payment will help to support in the system maintenance, hosting and AI subscription.</p>
+              <p className="text-muted mb-6">Unlock advanced features and unlimited usage for only 250 pesos per month. This support helps maintain our infrastructure and AI subscriptions.</p>
               
               <ul className="space-y-2 mb-6">
                 {[
                   'Unlimited AI Generations',
-                  'Advanced Code Citations',
-                  'Priority Support',
-                  'Export to PDF/Word (Soon)'
+                  'Advanced Fire Code References',
+                  'Official NTC Layout Assistance',
+                  'Priority Model Access (Pro-3.1)'
                 ].map((feature, i) => (
                   <li key={i} className="flex items-center gap-2 text-sm text-silver">
                     <Check size={16} className="text-cobalt" />
@@ -237,12 +291,12 @@ const AccountView: React.FC<AccountViewProps> = ({ user }) => {
                     className={ui.upgradeButton}
                   >
                     <CreditCard size={20} />
-                    PAY WITH GCASH
+                    PAY PHP 250.00
                   </button>
-                  <p className="text-[10px] text-center text-muted mt-3 font-mono">SECURE PAYMENT via PayMongo</p>
+                  <p className="text-[10px] text-center text-muted mt-3 font-mono uppercase tracking-widest">Secure Checkout (New Tab)</p>
 
-                  <div className='mt-6 border-t border-glass pt-6'>
-                    <label className="block text-sm text-silver font-mono uppercase mb-3">Or attach proof of payment</label>
+                  <div className='mt-8 border-t border-glass pt-6 text-left'>
+                    <label className="block text-xs text-muted font-mono uppercase mb-3 tracking-widest">Manual Proof Submission</label>
                     <input
                       ref={fileInputRef}
                       type="file"
@@ -258,20 +312,73 @@ const AccountView: React.FC<AccountViewProps> = ({ user }) => {
                       {isUploadingProof ? 'UPLOADING...' : (
                         <>
                           <Upload size={20} />
-                          ATTACH PROOF OF PAYMENT
+                          UPLOAD RECEIPT
                         </>
                       )}
                     </button>
-                    {proofOfPayment && <p className="text-xs text-muted mt-2 truncate">{proofOfPayment.name}</p>}
+                    {proofOfPayment && <p className="text-[10px] text-muted mt-2 truncate font-mono">{proofOfPayment.name}</p>}
                   </div>
                 </div>
               ) : (
-                <div className="bg-emerald-500/20 border border-emerald-500/50 text-emerald-400 px-8 py-4 rounded-lg flex items-center gap-3 font-bold text-lg shadow-[0_0_20px_rgba(16,185,129,0.2)]">
-                  <Check size={24} />
-                  PRO ACTIVE
+                <div className="bg-emerald-500/20 border border-emerald-500/50 text-emerald-400 px-8 py-4 rounded-lg flex flex-col items-center gap-1 font-bold text-lg shadow-[0_0_20px_rgba(16,185,129,0.2)]">
+                  <div className="flex items-center gap-3">
+                    <Check size={24} />
+                    PRO ACCOUNT ACTIVE
+                  </div>
                 </div>
               )}
             </div>
+          </div>
+        </div>
+
+        {/* Payment History Section */}
+        <div className="md:col-span-2 glass-panel p-5 sm:p-6 rounded-xl border border-glass">
+          <h3 className="text-lg font-display text-white mb-4 flex items-center gap-2">
+            <CreditCard className="text-cobalt" size={20} />
+            PAYMENT HISTORY & INVOICES
+          </h3>
+          
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs font-mono">
+              <thead className="text-muted border-b border-glass">
+                <tr>
+                  <th className="py-3 px-2">REFERENCE</th>
+                  <th className="py-3 px-2">DATE</th>
+                  <th className="py-3 px-2">AMOUNT</th>
+                  <th className="py-3 px-2">STATUS</th>
+                  <th className="py-3 px-2 text-right">ACTION</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-glass/30">
+                {isLoadingPayments ? (
+                  <tr><td colSpan={5} className="py-8 text-center text-muted animate-pulse">LOADING TRANSACTION LOGS...</td></tr>
+                ) : payments.length === 0 ? (
+                  <tr><td colSpan={5} className="py-8 text-center text-muted">NO PAYMENT RECORDS FOUND.</td></tr>
+                ) : payments.map((p, i) => (
+                  <tr key={i} className="hover:bg-white/5 transition-colors">
+                    <td className="py-3 px-2 text-silver">{p.reference_number}</td>
+                    <td className="py-3 px-2 text-muted">{new Date(p.created_at).toLocaleDateString()}</td>
+                    <td className="py-3 px-2 text-white">PHP {p.amount.toFixed(2)}</td>
+                    <td className="py-3 px-2">
+                      <span className={`px-2 py-0.5 rounded text-[10px] ${
+                        p.status === 'approved' ? 'bg-emerald-500/20 text-emerald-400' : 
+                        p.status === 'pending' ? 'bg-tangerine/20 text-tangerine' : 'bg-red-500/20 text-red-400'
+                      }`}>
+                        {p.status.toUpperCase()}
+                      </span>
+                    </td>
+                    <td className="py-3 px-2 text-right">
+                      <button 
+                        onClick={() => handleDownloadInvoice(p)}
+                        className="text-cobalt hover:text-white transition-colors"
+                      >
+                        DOWNLOAD INVOICE
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
 

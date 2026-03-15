@@ -54,7 +54,29 @@ export class SQLiteDB implements DB {
         version INTEGER PRIMARY KEY,
         applied_at DATETIME DEFAULT CURRENT_TIMESTAMP
       );
+      CREATE TABLE IF NOT EXISTS payments (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_email TEXT,
+        amount REAL,
+        status TEXT CHECK (status IN ('pending', 'approved', 'rejected')) NOT NULL DEFAULT 'pending',
+        reference_number TEXT,
+        proof_url TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_email) REFERENCES users(email) ON DELETE CASCADE
+      );
     `);
+
+    try {
+      this.db.exec('ALTER TABLE users ADD COLUMN subscription_expiry DATETIME');
+    } catch {}
+
+    try {
+      this.db.exec('ALTER TABLE users ADD COLUMN last_payment_date DATETIME');
+    } catch {}
+
+    try {
+      this.db.exec('ALTER TABLE users ADD COLUMN usage_reset_date DATETIME');
+    } catch {}
 
     try {
       this.db.exec('ALTER TABLE users ADD COLUMN bfp_id_url TEXT');

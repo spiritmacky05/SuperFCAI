@@ -1,10 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Bot, User, Loader2, Sparkles, AlertCircle } from 'lucide-react';
+import { Send, Bot, User as UserIcon, Loader2, Sparkles, AlertCircle } from 'lucide-react';
+import { User as UserType } from '../../types';
 import { generateContent } from '../../services/geminiService';
 import ReactMarkdown from 'react-markdown';
 
 interface ChatBoxProps {
   reportContext: string;
+  user: UserType;
 }
 
 interface Message {
@@ -13,7 +15,7 @@ interface Message {
   timestamp: number;
 }
 
-const ChatBox: React.FC<ChatBoxProps> = ({ reportContext }) => {
+const ChatBox: React.FC<ChatBoxProps> = ({ reportContext, user }) => {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'model',
@@ -59,7 +61,7 @@ const ChatBox: React.FC<ChatBoxProps> = ({ reportContext }) => {
         Answer the user's question based on the report content and the Fire Code. Be concise, professional, and cite specific provisions if applicable.
       `;
 
-      const response = await generateContent(prompt);
+      const response = await generateContent(prompt, user.email);
       
       const botMessage: Message = {
         role: 'model',
@@ -117,7 +119,7 @@ const ChatBox: React.FC<ChatBoxProps> = ({ reportContext }) => {
                 ? 'bg-tangerine/10 border-tangerine/30 text-tangerine' 
                 : 'bg-cobalt/10 border-cobalt/30 text-cobalt'
             }`}>
-              {msg.role === 'user' ? <User className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
+              {msg.role === 'user' ? <UserIcon className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
             </div>
             
             <div className={`max-w-[80%] rounded-xl p-4 text-sm font-sans leading-relaxed border ${

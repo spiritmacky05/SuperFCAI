@@ -36,6 +36,17 @@ export class UserService {
     }
 
     const user = { ...matchedUser };
+    
+    // Check subscription expiry
+    if (user.role === 'pro' && user.subscription_expiry) {
+      const expiry = new Date(user.subscription_expiry);
+      if (expiry < new Date()) {
+        console.log(`User ${email} subscription expired. Downgrading to free.`);
+        await this.users.upsert({ email, role: 'free' });
+        user.role = 'free';
+      }
+    }
+
     if (user.status === 'pending') {
       return { status: 403, payload: { error: 'Your account is pending approval by an administrator.' } };
     }
@@ -44,8 +55,36 @@ export class UserService {
     return { status: 200, payload: user };
   }
 
-  updateUserRoleStatus(email: string, role?: string, status?: string) {
+  async updateUserRoleStatus(email: string, role?: string, status?: string) {
+    // If upgrading to pro and status is approved, set expiry
+    if (role === 'pro' && status === 'approved') {
+      const expiry = new Date();
+      expiry.setMonth(expiry.getMonth() + 1);
+      
+      await this.users.upsert({ 
+        email, 
+        role, 
+        status, 
+        subscription_expiry: expiry.toISOString(),
+        last_payment_date: new Date().toISOString()
+      });
+
+      // Record a payment entry
+      await this.users.createPayment({
+        user_email: email,
+        amount: 250, // Fixed amount for Pro
+        status: 'approved',
+        reference_number: `PRO-${Date.now()}`
+      });
+
+      return;
+    }
+
     return this.users.updateRoleStatus(email, role, status);
+  }
+
+  async getPayments(email: string) {
+    return this.users.getPaymentsByEmail(email);
   }
 
   async uploadProofOfPayment(email: string, filePath: string) {

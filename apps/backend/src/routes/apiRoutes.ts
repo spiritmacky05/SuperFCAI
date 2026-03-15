@@ -40,6 +40,7 @@ export const createApiRouter = (container: AppContainer) => {
   router.put('/users/:email', user.update);
   router.delete('/users/:email', user.delete);
   router.post('/users/upload-proof-of-payment', upload.single('proof'), user.uploadProofOfPayment);
+  router.get('/users/:email/payments', user.getPayments);
 
   router.get('/reports', report.list);
   router.post('/reports', report.save);

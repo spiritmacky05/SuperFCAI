@@ -41,6 +41,8 @@ export interface User {
   bfp_account_number?: string;
   paymentStatus?: 'none' | 'pending' | 'approved' | 'rejected';
   proofOfPaymentUrl?: string;
+  subscription_expiry?: string;
+  last_payment_date?: string;
 }
 
 export interface SavedReport {

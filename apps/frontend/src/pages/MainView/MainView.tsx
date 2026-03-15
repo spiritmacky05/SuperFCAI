@@ -84,8 +84,8 @@ export const MainView: React.FC<MainViewProps> = ({ user, reportGen, setIsAssist
           {result ? (
             <div className="animate-fade-in-up space-y-8">
               <ResultDisplay content={result} />
-              <ChatBox reportContext={result} />
-              <NTCGenerator params={params} />
+              <ChatBox reportContext={result} user={user} />
+              <NTCGenerator params={params} user={user} />
             </div>
           ) : (
             !isLoading && (

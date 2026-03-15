@@ -15,4 +15,9 @@ export class ReportModel {
     const { id, timestamp, params, result } = report;
     return this.db.run('INSERT INTO reports (id, email, timestamp, params, result) VALUES (?, ?, ?, ?, ?)', [id, email, timestamp, JSON.stringify(params), result]);
   }
+
+  async countByEmailSince(email: string, since: number) {
+    const result = await this.db.query<{ count: number }>('SELECT COUNT(*) as count FROM reports WHERE email = ? AND timestamp >= ?', [email, since]);
+    return result[0]?.count || 0;
+  }
 }

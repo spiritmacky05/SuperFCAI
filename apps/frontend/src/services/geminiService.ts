@@ -2,21 +2,21 @@ import { SearchParams, AiResponse, ChatMessage } from '../types';
 
 const API_BASE_URL = '/api';
 
-export const generateContent = async (prompt: string): Promise<string> => {
+export const generateContent = async (prompt: string, email?: string): Promise<string> => {
   const response = await fetch(`${API_BASE_URL}/generateContent`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ prompt }),
+    body: JSON.stringify({ prompt, email }),
   });
   const data = await response.json();
   return data.text;
 };
 
-export const generateFireSafetyReport = async (params: SearchParams): Promise<AiResponse> => {
+export const generateFireSafetyReport = async (params: SearchParams, email?: string): Promise<AiResponse> => {
   const response = await fetch(`${API_BASE_URL}/generateFireSafetyReport`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ params }),
+    body: JSON.stringify({ params, email }),
   });
   
   if (!response.ok) {
@@ -44,11 +44,11 @@ export const createGeneralAssistantSession = async (): Promise<any> => {
     });
 };
 
-export const sendMessage = async (message: string, history: ChatMessage[]): Promise<string> => {
+export const sendMessage = async (message: string, history: ChatMessage[], email?: string): Promise<string> => {
     const response = await fetch(`${API_BASE_URL}/sendMessage`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message, history }),
+        body: JSON.stringify({ message, history, email }),
     });
     
     if (!response.ok) {
@@ -60,11 +60,11 @@ export const sendMessage = async (message: string, history: ChatMessage[]): Prom
     return data.text;
 }
 
-export const generateNTC = async (params: SearchParams, violations: string): Promise<string> => {
+export const generateNTC = async (params: SearchParams, violations: string, email?: string): Promise<string> => {
     const response = await fetch(`${API_BASE_URL}/generateNTC`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ params, violations }),
+        body: JSON.stringify({ params, violations, email }),
     });
 
     if (!response.ok) {

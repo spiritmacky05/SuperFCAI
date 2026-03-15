@@ -25,7 +25,7 @@ export const useReportGenerator = (user: User | null) => {
       const currentCount = parseInt(localStorage.getItem('gemini_usage_count') || '0', 10);
       localStorage.setItem('gemini_usage_count', (currentCount + 1).toString());
 
-      const response = await generateFireSafetyReport(params);
+      const response = await generateFireSafetyReport(params, user?.email);
       setResult(response.markdown);
       
       const report: SavedReport = {

@@ -10,4 +10,9 @@ export class ReportService {
   save(email: string, report: any) {
     return this.reports.save(email, report);
   }
+
+  async getWeeklyUsage(email: string) {
+    const oneWeekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    return this.reports.countByEmailSince(email, oneWeekAgo);
+  }
 }

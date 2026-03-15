@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { SearchParams } from '../../types';
+import { SearchParams, User } from '../../types';
 import { generateNTC } from '../../services/geminiService';
 import ReactMarkdown from 'react-markdown';
 import { AlertTriangle, Check, Copy, Loader2, FileWarning } from 'lucide-react';
@@ -7,6 +7,7 @@ import { useToast } from '../ToastContext';
 
 interface NTCGeneratorProps {
   params: SearchParams;
+  user: User;
 }
 
 const DEFECT_CATEGORIES = [
@@ -76,7 +77,7 @@ const DEFECT_CATEGORIES = [
   }
 ];
 
-const NTCGenerator: React.FC<NTCGeneratorProps> = ({ params }) => {
+const NTCGenerator: React.FC<NTCGeneratorProps> = ({ params, user }) => {
   const [selectedDefects, setSelectedDefects] = useState<Set<string>>(new Set());
   const [otherDefects, setOtherDefects] = useState('');
   const [ntcContent, setNtcContent] = useState('');
@@ -112,7 +113,7 @@ const NTCGenerator: React.FC<NTCGeneratorProps> = ({ params }) => {
     const violationsContext = defectsList.map((d, i) => `${i + 1}. ${d}`).join('\n');
 
     try {
-      const result = await generateNTC(params, violationsContext);
+      const result = await generateNTC(params, violationsContext, user.email);
       setNtcContent(result);
     } catch (err: any) {
       console.error("NTC Gen Error:", err);

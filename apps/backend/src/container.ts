@@ -42,7 +42,7 @@ export const buildContainer = (db: DB) => {
       knowledge: new KnowledgeController(knowledgeService),
       errorReport: new ErrorReportController(errorReportService),
       paymongo: new PaymongoController(paymongoService),
-      ai: new AiController(aiService),
+      ai: new AiController(aiService, userService, reportService),
       health: new HealthController(db, aiService),
     },
   };

@@ -67,4 +67,14 @@ export class UserController {
       res.status(500).json({ error: err.message });
     }
   };
+
+  getPayments = async (req: Request, res: Response) => {
+    try {
+      const email = String(req.params.email);
+      const payments = await this.userService.getPayments(email);
+      res.json(payments);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  };
 }

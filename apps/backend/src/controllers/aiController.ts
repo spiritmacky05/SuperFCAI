@@ -1,12 +1,32 @@
 import { Request, Response } from 'express';
 import { AiService } from '../services/aiService.ts';
+import { UserService } from '../services/userService.ts';
+import { ReportService } from '../services/reportService.ts';
 
 export class AiController {
-  constructor(private readonly aiService: AiService) {}
+  constructor(
+    private readonly aiService: AiService,
+    private readonly userService: UserService,
+    private readonly reportService: ReportService
+  ) {}
 
   generateContent = async (req: Request, res: Response) => {
     try {
-      const text = await this.aiService.generateContent(req.body.prompt);
+      const { email, prompt } = req.body;
+      
+      // Limit check for free users
+      if (email) {
+        const users = await this.userService.listUsers();
+        const user = users.find(u => u.email === email);
+        if (user && user.role === 'free') {
+          const usage = await this.reportService.getWeeklyUsage(email);
+          if (usage >= 10) { // Example limit: 10 per week
+            return res.status(403).json({ error: 'Weekly limit reached for Free tier. Please upgrade to Pro for unlimited access.' });
+          }
+        }
+      }
+
+      const text = await this.aiService.generateContent(prompt);
       res.json({ text });
     } catch (err: any) {
       const status = String(err.message || '').includes('not configured') ? 503 : 500;
@@ -16,7 +36,21 @@ export class AiController {
 
   generateFireSafetyReport = async (req: Request, res: Response) => {
     try {
-      const markdown = await this.aiService.generateFireSafetyReport(req.body.params);
+      const { email, params } = req.body;
+
+      // Limit check for free users
+      if (email) {
+        const users = await this.userService.listUsers();
+        const user = users.find(u => u.email === email);
+        if (user && user.role === 'free') {
+          const usage = await this.reportService.getWeeklyUsage(email);
+          if (usage >= 10) {
+            return res.status(403).json({ error: 'Weekly limit reached for Free tier. Please upgrade to Pro for unlimited access.' });
+          }
+        }
+      }
+
+      const markdown = await this.aiService.generateFireSafetyReport(params);
       res.json({ markdown });
     } catch (err: any) {
       const status = String(err.message || '').includes('not configured') ? 503 : 500;
