@@ -14,9 +14,8 @@ docker compose build superfcai
 
 # 3. Recreate the container in place
 # --no-deps: only affects the specified service
-# -d: run in background
 echo "🔄 Swapping containers..."
-docker compose up -d --no-deps superfcai
+docker compose up --no-deps superfcai
 
 # 4. Cleanup old images to save disk space
 echo "🧹 Cleaning up old images..."
