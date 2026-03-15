@@ -100,7 +100,7 @@ const AdminUserManagement: React.FC<AdminUserManagementProps> = ({
                 <th className="p-4 border-b border-glass">Access ID (Email)</th>
                 <th className="p-4 border-b border-glass">Clearance Level</th>
                 <th className="p-4 border-b border-glass">Status</th>
-                <th className="p-4 border-b border-glass">Payment</th>
+                <th className="p-4 border-b border-glass">Subscription</th>
                 <th className="p-4 border-b border-glass text-right">Actions</th>
               </tr>
             </thead>
@@ -156,13 +156,20 @@ const AdminUserManagement: React.FC<AdminUserManagementProps> = ({
                     </button>
                   </td>
                   <td className="p-4">
+                    <span className={`px-2 py-1 rounded text-[10px] font-mono uppercase tracking-wider border ${
+                      user.role === 'pro' 
+                        ? 'bg-emerald-900/20 text-emerald-400 border-emerald-500/30' 
+                        : 'bg-glass text-muted border-glass'
+                    }`}>
+                      {user.role === 'pro' ? 'SUBSCRIBED' : 'FREE'}
+                    </span>
                     {user.paymentStatus === 'pending' && (
                       <button
                         onClick={() => onOpenPaymentModal(user)}
-                        className="px-2 py-1 rounded text-[10px] font-mono uppercase tracking-wider border transition-colors hover:brightness-110 bg-yellow-900/20 text-yellow-400 border-yellow-500/30"
+                        className="ml-2 px-2 py-1 rounded text-[10px] font-mono uppercase tracking-wider border transition-colors hover:brightness-110 bg-yellow-900/20 text-yellow-400 border-yellow-500/30"
                         title="Verify Payment"
                       >
-                        Pending
+                        Pending Verify
                       </button>
                     )}
                   </td>
@@ -277,6 +284,28 @@ const AdminUserManagement: React.FC<AdminUserManagementProps> = ({
                   >
                     {user.status || 'approved'}
                   </button>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] text-muted uppercase font-mono tracking-wider">Sub:</span>
+                  {user.role === 'pro' ? (
+                    <span className="px-2 py-1 rounded text-[10px] font-mono uppercase tracking-wider border bg-emerald-900/20 text-emerald-400 border-emerald-500/30">
+                      SUBSCRIBED
+                    </span>
+                  ) : (
+                    <span className="px-2 py-1 rounded text-[10px] font-mono uppercase tracking-wider border bg-glass text-muted border-glass">
+                      FREE
+                    </span>
+                  )}
+                  {user.paymentStatus === 'pending' && (
+                    <button
+                      onClick={() => onOpenPaymentModal(user)}
+                      className="px-2 py-1 rounded text-[10px] font-mono uppercase tracking-wider border transition-colors hover:brightness-110 bg-yellow-900/20 text-yellow-400 border-yellow-500/30"
+                      title="Verify Payment"
+                    >
+                      Pending
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
