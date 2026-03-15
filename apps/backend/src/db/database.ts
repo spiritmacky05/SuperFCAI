@@ -206,7 +206,7 @@ export class SQLiteDB implements DB {
         VALUES (?, ?, ?, ?, ?)
       `)
       .run(seedSuperAdminEmail, 'Spirit Macky', 'super_admin', seedPasswordHash, 'approved');
-    console.log(`Ensured ${seedSuperAdminEmail} super_admin seed account`);
+    console.log(`[SEED] Ensured super_admin: ${seedSuperAdminEmail} (Default Password: "${seedPassword}")`);
 
     console.log('SQLite initialized');
   }
