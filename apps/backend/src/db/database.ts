@@ -78,17 +78,16 @@ export class SQLiteDB implements DB {
     const migrationV1Applied = this.db.prepare('SELECT 1 FROM schema_migrations WHERE version = 1').get();
     if (!migrationV1Applied) {
       console.log('[MIGRATION] Checking for V1 legacy tables...');
-      const hasLegacyUsers = this.db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='users_legacy'").get();
-      
-      // If users exists but has old columns, we might need to migrate.
-      // However, for most fresh installs, CREATE TABLE already made the right one.
       const columns = this.db.prepare("PRAGMA table_info(users)").all();
       const hasOldColumn = columns.some((c: any) => c.name === 'proofOfPaymentUrl');
 
       if (hasOldColumn) {
         console.log('[MIGRATION] Running V1 Migration (Normalizing Schema)...');
         const migrateToV1 = this.db.transaction(() => {
+          this.db.pragma('legacy_alter_table = ON');
           this.db.pragma('foreign_keys = OFF');
+          
+          this.db.exec('DROP TABLE IF EXISTS users_legacy');
           this.db.exec('ALTER TABLE users RENAME TO users_legacy');
           this.db.exec(`
             CREATE TABLE users (
@@ -112,7 +111,9 @@ export class SQLiteDB implements DB {
             SELECT email, COALESCE(name, ''), role, password, bfp_id_url, status, bfp_account_number, proofOfPaymentUrl, paymentStatus, subscription_expiry, last_payment_date, usage_reset_date, session_id FROM users_legacy
           `);
           this.db.exec('DROP TABLE users_legacy');
+          
           this.db.pragma('foreign_keys = ON');
+          this.db.pragma('legacy_alter_table = OFF');
         });
         migrateToV1();
       }
@@ -128,9 +129,10 @@ export class SQLiteDB implements DB {
       if (needsV2) {
         console.log('[MIGRATION] Running V2 Migration (Snake Case Standardization)...');
         const migrateToV2 = this.db.transaction(() => {
+          this.db.pragma('legacy_alter_table = ON');
           this.db.pragma('foreign_keys = OFF');
           
-          // Split into sequential steps for schema visibility
+          this.db.exec('DROP TABLE IF EXISTS users_v1');
           this.db.exec('ALTER TABLE users RENAME TO users_v1');
           
           this.db.exec(`
@@ -164,6 +166,7 @@ export class SQLiteDB implements DB {
           
           this.db.exec('DROP TABLE users_v1');
           this.db.pragma('foreign_keys = ON');
+          this.db.pragma('legacy_alter_table = OFF');
         });
         migrateToV2();
       }
@@ -173,18 +176,67 @@ export class SQLiteDB implements DB {
     // Migration V3 - Normalizing all emails to lowercase in the database
     const migrationV3Applied = this.db.prepare('SELECT 1 FROM schema_migrations WHERE version = 3').get();
     if (!migrationV3Applied) {
-      console.log('[MIGRATION] Running V3 Migration (Email Normalization)...');
+      console.log('[MIGRATION] Running V3 Migration (Email Normalization & FK Fix)...');
       const migrateToV3 = this.db.transaction(() => {
         this.db.pragma('foreign_keys = OFF');
+        
+        // Recreate referencing tables to fix any broken foreign keys from previous renames
+        this.db.exec('ALTER TABLE reports RENAME TO reports_v3_old');
+        this.db.exec(`
+          CREATE TABLE reports (
+            id TEXT PRIMARY KEY,
+            email TEXT NOT NULL,
+            timestamp INTEGER NOT NULL,
+            params TEXT NOT NULL,
+            result TEXT NOT NULL,
+            FOREIGN KEY (email) REFERENCES users(email) ON DELETE CASCADE
+          )
+        `);
+        this.db.exec('INSERT INTO reports SELECT * FROM reports_v3_old');
+        this.db.exec('DROP TABLE reports_v3_old');
+
+        this.db.exec('ALTER TABLE error_reports RENAME TO error_reports_v3_old');
+        this.db.exec(`
+          CREATE TABLE error_reports (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_email TEXT,
+            cited_error TEXT NOT NULL,
+            actual_correction TEXT NOT NULL,
+            status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'evaluated')),
+            created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_email) REFERENCES users(email) ON DELETE SET NULL
+          )
+        `);
+        this.db.exec('INSERT INTO error_reports SELECT * FROM error_reports_v3_old');
+        this.db.exec('DROP TABLE error_reports_v3_old');
+
+        this.db.exec('ALTER TABLE payments RENAME TO payments_v3_old');
+        this.db.exec(`
+          CREATE TABLE payments (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_email TEXT,
+            amount REAL,
+            status TEXT CHECK (status IN ('pending', 'approved', 'rejected')) NOT NULL DEFAULT 'pending',
+            reference_number TEXT,
+            proof_url TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_email) REFERENCES users(email) ON DELETE CASCADE
+          )
+        `);
+        this.db.exec('INSERT INTO payments SELECT * FROM payments_v3_old');
+        this.db.exec('DROP TABLE payments_v3_old');
+
+        // Now run the updates
         this.db.exec(`UPDATE users SET email = LOWER(TRIM(email))`);
         this.db.exec(`UPDATE reports SET email = LOWER(TRIM(email))`);
         this.db.exec(`UPDATE error_reports SET user_email = LOWER(TRIM(user_email))`);
         this.db.exec(`UPDATE payments SET user_email = LOWER(TRIM(user_email))`);
+        
         this.db.pragma('foreign_keys = ON');
       });
       migrateToV3();
       this.db.prepare('INSERT OR IGNORE INTO schema_migrations (version) VALUES (3)').run();
-      console.log('[MIGRATION] Migration V3: Lowercased all database emails.');
+      console.log('[MIGRATION] Migration V3 Complete.');
     }
 
     this.db.exec(`
