@@ -23,11 +23,17 @@ export class UserService {
 
   async login(email: string, password: string) {
     const matches = await this.users.getByEmail(email);
-    if (matches.length === 0) return { status: 401, payload: { error: 'Invalid credentials' } };
+    if (matches.length === 0) {
+      console.log(`[LOGIN DEBUG] User not found: ${email}`);
+      return { status: 401, payload: { error: 'Invalid credentials' } };
+    }
 
     const matchedUser = matches[0];
     const isValidPassword = await verifyPassword(password, matchedUser.password);
-    if (!isValidPassword) return { status: 401, payload: { error: 'Invalid credentials' } };
+    if (!isValidPassword) {
+      console.log(`[LOGIN DEBUG] Password mismatch for: ${email}`);
+      return { status: 401, payload: { error: 'Invalid credentials' } };
+    }
 
     if (!isPasswordHash(matchedUser.password)) {
       const upgradedHash = await hashPassword(password);
