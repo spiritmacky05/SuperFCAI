@@ -49,7 +49,23 @@ export class UserService {
   }
 
   async uploadProofOfPayment(email: string, filePath: string) {
-    return this.users.updatePaymentStatus(email, 'pending', filePath);
+    const log = (msg: string) => {
+      try {
+        const fs = require('fs');
+        fs.appendFileSync('/tmp/backend.log', `${new Date().toISOString()} - ${msg}\n`);
+      } catch {}
+      console.log(msg);
+    };
+    
+    log(`Uploading proof for ${email}: ${filePath}`);
+    try {
+      const result = await this.users.updatePaymentStatus(email, 'pending', filePath);
+      log(`Update proof result: ${JSON.stringify(result)}`);
+      return result;
+    } catch (err: any) {
+      log(`FAILED to update payment status in DB: ${err.message}`);
+      throw err;
+    }
   }
 
   deleteUser(email: string) {
