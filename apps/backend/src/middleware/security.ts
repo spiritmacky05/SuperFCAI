@@ -48,6 +48,16 @@ export const corsMiddleware = cors({
 
 export const helmetMiddleware = helmet({
   crossOriginResourcePolicy: { policy: 'cross-origin' },
+  contentSecurityPolicy: {
+    directives: {
+      ...helmet.contentSecurityPolicy.getDefaultDirectives(),
+      "script-src": ["'self'", "'unsafe-inline'", "https://pagead2.googlesyndication.com"],
+      "script-src-elem": ["'self'", "'unsafe-inline'", "https://pagead2.googlesyndication.com", "https://*.google.com"],
+      "frame-src": ["'self'", "https://googleads.g.doubleclick.net", "https://*.google.com", "https://*.googlesyndication.com"],
+      "img-src": ["'self'", "data:", "https://pagead2.googlesyndication.com", "https://*.google.com"],
+      "connect-src": ["'self'", "https://*.google.com", "https://*.analytics.google.com", "https://*.googlesyndication.com"],
+    },
+  },
 });
 
 export const apiRateLimit = rateLimit({
