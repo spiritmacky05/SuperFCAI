@@ -82,7 +82,7 @@ export class UserService {
       // Record a payment entry
       await this.users.createPayment({
         user_email: email,
-        amount: 250, // Fixed amount for Pro
+        amount: 99, // Fixed amount for Pro
         status: 'approved',
         reference_number: `PRO-${Date.now()}`
       });

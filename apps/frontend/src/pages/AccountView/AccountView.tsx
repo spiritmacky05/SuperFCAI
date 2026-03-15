@@ -287,7 +287,7 @@ Thank you for supporting Super FC AI!
                 <Zap className="text-yellow-400 fill-yellow-400" />
                 UPGRADE TO PRO
               </h3>
-              <p className="text-muted mb-6">Unlock advanced features and unlimited usage for only 250 pesos per month. This support helps maintain our infrastructure and AI subscriptions.</p>
+              <p className="text-muted mb-6">Unlock advanced features and unlimited usage for only 99 pesos per month. This support helps maintain our infrastructure and AI subscriptions.</p>
               
               <ul className="space-y-2 mb-6">
                 {[
@@ -312,7 +312,7 @@ Thank you for supporting Super FC AI!
                     className={ui.upgradeButton}
                   >
                     <CreditCard size={20} />
-                    PAY PHP 250.00
+                    PAY PHP 99.00
                   </button>
                   <p className="text-[10px] text-center text-muted mt-3 font-mono uppercase tracking-widest">Secure Checkout (New Tab)</p>
 
