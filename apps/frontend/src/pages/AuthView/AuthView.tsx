@@ -45,7 +45,7 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin }) => {
         return;
       }
       
-      const success = await storageService.register({
+      const result = await storageService.register({
         email: formData.email,
         password: formData.password,
         name: formData.name,
@@ -54,11 +54,11 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin }) => {
         bfp_account_number: formData.bfp_account_number
       });
 
-      if (success) {
+      if (result.success) {
         setError('REGISTRATION SUCCESSFUL: Pending admin approval');
         setIsLogin(true);
       } else {
-        setError('REGISTRATION FAILED: Email already exists');
+        setError(`REGISTRATION FAILED: ${result.error || 'Check details and try again'}`);
       }
     }
   };

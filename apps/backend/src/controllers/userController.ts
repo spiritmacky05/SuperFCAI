@@ -18,7 +18,17 @@ export class UserController {
       await this.userService.upsertUser(req.body);
       res.json({ success: true });
     } catch (err: any) {
-      res.status(500).json({ error: err.message });
+      let message = err.message;
+      if (err.message.includes('UNIQUE constraint failed')) {
+        if (err.message.includes('users.email')) {
+          message = 'This email address is already registered.';
+        } else if (err.message.includes('users.bfp_account_number')) {
+          message = 'This BFP Account Number is already associated with another profile.';
+        } else {
+          message = 'A record with these unique details already exists.';
+        }
+      }
+      res.status(500).json({ error: message });
     }
   };
 

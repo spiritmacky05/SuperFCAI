@@ -57,7 +57,7 @@ export const storageService = {
     }
   },
 
-  register: async (user: User): Promise<boolean> => {
+  register: async (user: User): Promise<{ success: boolean; error?: string }> => {
     try {
       const response = await fetch(`${API_BASE}/users`, {
         method: 'POST',
@@ -65,10 +65,15 @@ export const storageService = {
         body: JSON.stringify(user)
       });
       
-      return response.ok;
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Registration failed' }));
+        return { success: false, error: errorData.error };
+      }
+      
+      return { success: true };
     } catch (e) {
       console.error('register error:', e);
-      return false;
+      return { success: false, error: 'Connection error' };
     }
   },
 
