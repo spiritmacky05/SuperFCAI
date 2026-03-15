@@ -21,21 +21,30 @@ export class UserService {
     return this.users.upsert(payload);
   }
 
-  async login(email: string, password: string) {
+  async login(emailStr: string, passwordStr: string) {
+    const email = (emailStr || '').trim();
+    const password = (passwordStr || '').trim();
+
+    console.log(`[AUTH] Login attempt for: "${email}" (Password length: ${password.length})`);
+
     const matches = await this.users.getByEmail(email);
     if (matches.length === 0) {
-      console.log(`[LOGIN DEBUG] User not found: ${email}`);
+      console.log(`[AUTH] ERROR: email "${email}" not found in database.`);
       return { status: 401, payload: { error: 'Invalid credentials' } };
     }
 
     const matchedUser = matches[0];
+    console.log(`[AUTH] User found. Stored password starts with: "${matchedUser.password?.substring(0, 10)}..."`);
+
     const isValidPassword = await verifyPassword(password, matchedUser.password);
+    console.log(`[AUTH] Password verification result: ${isValidPassword}`);
+
     if (!isValidPassword) {
-      console.log(`[LOGIN DEBUG] Password mismatch for: ${email}`);
       return { status: 401, payload: { error: 'Invalid credentials' } };
     }
 
     if (!isPasswordHash(matchedUser.password)) {
+      console.log(`[AUTH] Migrating legacy plaintext password to hash for: ${email}`);
       const upgradedHash = await hashPassword(password);
       await this.users.updatePassword(email, upgradedHash);
       matchedUser.password = upgradedHash;
