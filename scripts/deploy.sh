@@ -6,7 +6,7 @@ echo "🚀 Starting Deployment..."
 
 # 1. Pull latest code
 echo "📥 Pulling latest changes from git..."
-git pull origin refactored
+git pull origin production
 
 # 2. Build the new image (does not stop existing containers)
 echo "🏗️ Building new Docker images..."

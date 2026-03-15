@@ -2,9 +2,9 @@ name: Continuous Integration
 
 on:
   push:
-    branches: [main, refactored]
+    branches: [production, test]
   pull_request:
-    branches: [main]
+    branches: [production]
 
 jobs:
   build-and-test:
