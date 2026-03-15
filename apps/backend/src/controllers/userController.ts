@@ -50,4 +50,18 @@ export class UserController {
       res.status(500).json({ error: err.message });
     }
   };
+
+  uploadProofOfPayment = async (req: Request, res: Response) => {
+    try {
+      const { email } = req.body;
+      if (!req.file) {
+        return res.status(400).json({ error: 'No file uploaded.' });
+      }
+      const filePath = `/uploads/${req.file.filename}`;
+      await this.userService.uploadProofOfPayment(email, filePath);
+      res.json({ success: true, filePath });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  };
 }

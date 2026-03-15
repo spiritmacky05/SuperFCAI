@@ -1,6 +1,20 @@
 import { Router } from 'express';
+import multer from 'multer';
 import { AppContainer } from '../container.ts';
 import { authRateLimit } from '../middleware/security.ts';
+
+// Configure multer for file uploads
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, 'apps/backend/uploads/');
+  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, file.fieldname + '-' + uniqueSuffix + '.' + file.originalname.split('.').pop());
+  }
+});
+
+const upload = multer({ storage: storage });
 
 export const createApiRouter = (container: AppContainer) => {
   const router = Router();
@@ -13,6 +27,7 @@ export const createApiRouter = (container: AppContainer) => {
   router.post('/login', authRateLimit, user.login);
   router.put('/users/:email', user.update);
   router.delete('/users/:email', user.delete);
+  router.post('/users/upload-proof-of-payment', upload.single('proof'), user.uploadProofOfPayment);
 
   router.get('/reports', report.list);
   router.post('/reports', report.save);

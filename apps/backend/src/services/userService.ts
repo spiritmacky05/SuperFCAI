@@ -48,6 +48,10 @@ export class UserService {
     return this.users.updateRoleStatus(email, role, status);
   }
 
+  async uploadProofOfPayment(email: string, filePath: string) {
+    return this.users.updatePaymentStatus(email, 'pending', filePath);
+  }
+
   deleteUser(email: string) {
     return this.users.deleteByEmail(email);
   }

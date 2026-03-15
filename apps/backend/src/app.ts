@@ -30,6 +30,9 @@ export const createApp = (container: AppContainer) => {
   app.use('/api', apiRateLimit);
   app.use('/api', createApiRouter(container));
 
+  const uploadsPath = path.resolve(__dirname, '../uploads');
+  app.use('/uploads', express.static(uploadsPath));
+
   if (env.nodeEnv === 'production') {
     const frontendDistPath = path.resolve(__dirname, '../../frontend/dist');
     app.use(express.static(frontendDistPath));

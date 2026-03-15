@@ -24,7 +24,9 @@ export class SQLiteDB implements DB {
         email TEXT PRIMARY KEY,
         name TEXT,
         role TEXT,
-        password TEXT
+        password TEXT,
+        proofOfPaymentUrl TEXT,
+        paymentStatus TEXT CHECK (paymentStatus IN ('none', 'pending', 'approved', 'rejected')) NOT NULL DEFAULT 'none'
       );
       CREATE TABLE IF NOT EXISTS reports (
         id TEXT PRIMARY KEY,
@@ -66,6 +68,14 @@ export class SQLiteDB implements DB {
       this.db.exec('ALTER TABLE users ADD COLUMN bfp_account_number TEXT');
     } catch {}
 
+    try {
+      this.db.exec('ALTER TABLE users ADD COLUMN proofOfPaymentUrl TEXT');
+    } catch {}
+
+    try {
+      this.db.exec("ALTER TABLE users ADD COLUMN paymentStatus TEXT CHECK (paymentStatus IN ('none', 'pending', 'approved', 'rejected')) NOT NULL DEFAULT 'none'");
+    } catch {}
+
     const migrationV1Applied = this.db.prepare('SELECT 1 FROM schema_migrations WHERE version = 1').get();
     if (!migrationV1Applied) {
       const migrateToV1 = this.db.transaction(() => {
@@ -80,9 +90,11 @@ export class SQLiteDB implements DB {
             password TEXT NOT NULL,
             bfp_id_url TEXT,
             status TEXT NOT NULL DEFAULT 'approved' CHECK (status IN ('pending', 'approved', 'rejected')),
-            bfp_account_number TEXT UNIQUE
+            bfp_account_number TEXT UNIQUE,
+            proofOfPaymentUrl TEXT,
+            paymentStatus TEXT CHECK (paymentStatus IN ('none', 'pending', 'approved', 'rejected')) NOT NULL DEFAULT 'none'
           );
-          INSERT INTO users (email, name, role, password, bfp_id_url, status, bfp_account_number)
+          INSERT INTO users (email, name, role, password, bfp_id_url, status, bfp_account_number, proofOfPaymentUrl, paymentStatus)
           SELECT
             email,
             COALESCE(name, ''),
@@ -90,7 +102,9 @@ export class SQLiteDB implements DB {
             COALESCE(password, ''),
             bfp_id_url,
             CASE WHEN status IN ('pending', 'approved', 'rejected') THEN status ELSE 'approved' END,
-            bfp_account_number
+            bfp_account_number,
+            NULL,
+            'none'
           FROM users_legacy;
           DROP TABLE users_legacy;
 
