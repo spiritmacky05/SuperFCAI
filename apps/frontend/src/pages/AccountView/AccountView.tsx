@@ -245,8 +245,12 @@ Thank you for supporting Super FC AI!
               />
             </div>
             <div className="pt-2 flex flex-wrap gap-2">
-              <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cobalt/10 border border-cobalt/30 text-cobalt text-xs font-bold uppercase tracking-wider">
-                {user.role} PLAN
+              <span className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider border ${
+                user.role === 'pro' 
+                  ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' 
+                  : 'bg-cobalt/10 border-cobalt/30 text-cobalt'
+              }`}>
+                {user.role === 'pro' ? 'SUBSCRIBED' : `${user.role} PLAN`}
               </span>
               {user.subscription_expiry && (
                 <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-tangerine/10 border border-tangerine/30 text-tangerine text-xs font-bold uppercase tracking-wider">
