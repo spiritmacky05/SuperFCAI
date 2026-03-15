@@ -212,10 +212,22 @@ Thank you for supporting Super FC AI!
           <div className="mt-6 w-full bg-glass h-2 rounded-full overflow-hidden">
             <div 
               className="bg-tangerine h-full rounded-full" 
-              style={{ width: `${Math.min((usageCount / 10) * 100, 100)}%` }}
+              style={{ width: user.role === 'pro' ? '100%' : `${Math.min((usageCount / 10) * 100, 100)}%` }}
             ></div>
           </div>
-          <p className="text-[10px] text-right text-muted mt-1 font-mono">Weekly Limit: 10 (Free Tier)</p>
+          <p className="text-[10px] text-right text-muted mt-1 font-mono uppercase tracking-widest">
+            {user.role === 'pro' ? (
+              (() => {
+                const now = new Date();
+                const expiry = new Date(user.subscription_expiry || '');
+                const diffTime = Math.max(0, expiry.getTime() - now.getTime());
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                return `${diffDays} DAYS LEFT TILL NEXT PAYMENT`;
+              })()
+            ) : (
+              'Weekly Limit: 10 (Free Tier)'
+            )}
+          </p>
         </div>
 
         {/* Profile Section */}
