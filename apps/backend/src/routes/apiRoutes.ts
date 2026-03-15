@@ -33,9 +33,13 @@ export const createApiRouter = (container: AppContainer) => {
   const { user, report, knowledge, errorReport, paymongo, ai, health } = container.controllers;
 
   router.get('/health', health.getHealth);
+  router.get('/diag/db-health', container.controllers['diag'].getDbHealth);
 
   router.get('/users', user.list);
   router.post('/users', user.upsert);
+  router.get('/users/:email', user.loginStatus);
+  router.get('/me', user.me);
+  router.get('/me/payments', user.getMePayments);
   router.get('/login/status', user.loginStatus);
   router.post('/login', authRateLimit, user.login);
   router.put('/users/:email', user.update);

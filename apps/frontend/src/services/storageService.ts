@@ -24,12 +24,15 @@ export const storageService = {
   },
 
   // Helper to get authentication headers
-  getAuthHeaders(): HeadersInit {
+  getAuthHeaders(multipart = false): HeadersInit {
     const user = this.getUser();
     const sessionId = localStorage.getItem('session_id');
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-    };
+    const headers: Record<string, string> = {};
+    
+    if (!multipart) {
+      headers['Content-Type'] = 'application/json';
+    }
+    
     if (user?.email) headers['X-User-Email'] = user.email;
     if (sessionId) headers['X-Session-Id'] = sessionId;
     return headers;
@@ -155,12 +158,12 @@ export const storageService = {
   },
 
   // Reports
-  saveReport: async (email: string, report: SavedReport): Promise<void> => {
+  saveReport: async (report: SavedReport): Promise<void> => {
     try {
       const response = await fetch(`${API_BASE}/reports`, {
         method: 'POST',
         headers: storageService.getAuthHeaders(),
-        body: JSON.stringify({ email, report })
+        body: JSON.stringify({ report })
       });
       if (!response.ok) throw new Error('Failed to save report');
     } catch (e) {
@@ -168,9 +171,9 @@ export const storageService = {
     }
   },
 
-  getReports: async (email: string): Promise<SavedReport[]> => {
+  getReports: async (): Promise<SavedReport[]> => {
     try {
-      const response = await fetch(`${API_BASE}/reports?email=${encodeURIComponent(email)}`, {
+      const response = await fetch(`${API_BASE}/reports`, {
         headers: storageService.getAuthHeaders()
       });
       if (!response.ok) throw new Error('Failed to fetch reports');
@@ -178,6 +181,47 @@ export const storageService = {
     } catch (e) {
       console.error('getReports error:', e);
       return [];
+    }
+  },
+
+  // Error Reports
+  getErrorReports: async (): Promise<any[]> => {
+    try {
+      const response = await fetch(`${API_BASE}/error-reports`, {
+        headers: storageService.getAuthHeaders()
+      });
+      if (!response.ok) throw new Error('Failed to fetch error reports');
+      return await response.json();
+    } catch (e) {
+      console.error('getErrorReports error:', e);
+      return [];
+    }
+  },
+
+  updateErrorReportStatus: async (id: number, status: string): Promise<void> => {
+    try {
+      const response = await fetch(`${API_BASE}/error-reports/${id}/status`, {
+        method: 'PATCH',
+        headers: storageService.getAuthHeaders(),
+        body: JSON.stringify({ status })
+      });
+      if (!response.ok) throw new Error('Failed to update error report status');
+    } catch (e) {
+      console.error('updateErrorReportStatus error:', e);
+      throw e;
+    }
+  },
+
+  deleteErrorReport: async (id: number): Promise<void> => {
+    try {
+      const response = await fetch(`${API_BASE}/error-reports/${id}`, {
+        method: 'DELETE',
+        headers: storageService.getAuthHeaders()
+      });
+      if (!response.ok) throw new Error('Failed to delete error report');
+    } catch (e) {
+      console.error('deleteErrorReport error:', e);
+      throw e;
     }
   },
 };

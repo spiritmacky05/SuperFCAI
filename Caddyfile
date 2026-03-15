@@ -4,6 +4,7 @@
   @api path /api/*
   reverse_proxy @api superfcai:3001
 
+  # Serve the app
   reverse_proxy superfcai:3001
 
   header {
@@ -11,6 +12,9 @@
     X-Content-Type-Options "nosniff"
     X-Frame-Options "SAMEORIGIN"
     Referrer-Policy "strict-origin-when-cross-origin"
+    
+    # Ensure custom headers for SuperFCAI are explicitly handled if needed
+    # Caddy preserves them by default, but this section is for security hardening
   }
 
   tls {$TLS_EMAIL}

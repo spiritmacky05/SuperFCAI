@@ -163,7 +163,7 @@ const AdminUserManagement: React.FC<AdminUserManagementProps> = ({
                     }`}>
                       {user.role === 'pro' ? 'SUBSCRIBED' : 'FREE'}
                     </span>
-                    {user.paymentStatus === 'pending' && (
+                    {user.payment_status === 'pending' && (
                       <button
                         onClick={() => onOpenPaymentModal(user)}
                         className="ml-2 px-2 py-1 rounded text-[10px] font-mono uppercase tracking-wider border transition-colors hover:brightness-110 bg-yellow-900/20 text-yellow-400 border-yellow-500/30"
@@ -297,7 +297,7 @@ const AdminUserManagement: React.FC<AdminUserManagementProps> = ({
                       FREE
                     </span>
                   )}
-                  {user.paymentStatus === 'pending' && (
+                  {user.payment_status === 'pending' && (
                     <button
                       onClick={() => onOpenPaymentModal(user)}
                       className="px-2 py-1 rounded text-[10px] font-mono uppercase tracking-wider border transition-colors hover:brightness-110 bg-yellow-900/20 text-yellow-400 border-yellow-500/30"

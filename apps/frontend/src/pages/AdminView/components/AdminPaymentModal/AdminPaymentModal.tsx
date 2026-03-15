@@ -38,10 +38,10 @@ const AdminPaymentModal: React.FC<AdminPaymentModalProps> = ({
           <div>
             <span className="text-muted text-xs uppercase tracking-wider block mb-2">Proof of Payment</span>
             <img 
-              src={user.proofOfPaymentUrl} 
+              src={user.proof_of_payment_url} 
               alt="Proof of Payment" 
               className="w-full rounded-lg border border-glass cursor-pointer hover:opacity-80 transition-opacity" 
-              onClick={() => onZoomImage(user.proofOfPaymentUrl!)}
+              onClick={() => onZoomImage(user.proof_of_payment_url!)}
             />
           </div>
           <div className="flex gap-4 mt-6 pt-4 border-t border-glass">

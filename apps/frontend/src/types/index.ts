@@ -39,8 +39,8 @@ export interface User {
   bfp_id_url?: string;
   status?: string;
   bfp_account_number?: string;
-  paymentStatus?: 'none' | 'pending' | 'approved' | 'rejected';
-  proofOfPaymentUrl?: string;
+  payment_status?: 'none' | 'pending' | 'approved' | 'rejected';
+  proof_of_payment_url?: string;
   subscription_expiry?: string;
   last_payment_date?: string;
   session_id?: string;

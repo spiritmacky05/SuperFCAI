@@ -44,9 +44,9 @@ export class UserController {
 
   loginStatus = async (req: Request, res: Response) => {
     try {
-      const email = req.headers['x-user-email'] as string;
+      const email = (req.headers['x-user-email'] as string || '').toLowerCase().trim();
       const users = await this.userService.listUsers();
-      const user = users.find(u => u.email === email);
+      const user = users.find(u => u.email.toLowerCase() === email);
       if (!user) {
         return res.status(404).json({ error: 'User not found' });
       }
@@ -56,10 +56,15 @@ export class UserController {
     }
   };
 
+  me = async (req: Request, res: Response) => {
+    return this.loginStatus(req, res);
+  };
+
   update = async (req: Request, res: Response) => {
     try {
+      const email = (String(req.params.email) || '').toLowerCase().trim();
       const { role, status } = req.body;
-      await this.userService.updateUserRoleStatus(String(req.params.email), role, status);
+      await this.userService.updateUserRoleStatus(email, role, status);
       res.json({ success: true });
     } catch (err: any) {
       res.status(500).json({ error: err.message });
@@ -68,7 +73,8 @@ export class UserController {
 
   delete = async (req: Request, res: Response) => {
     try {
-      await this.userService.deleteUser(String(req.params.email));
+      const email = (String(req.params.email) || '').toLowerCase().trim();
+      await this.userService.deleteUser(email);
       res.json({ success: true });
     } catch (err: any) {
       res.status(500).json({ error: err.message });
@@ -77,7 +83,9 @@ export class UserController {
 
   uploadProofOfPayment = async (req: Request, res: Response) => {
     try {
-      const { email } = req.body;
+      // Use header-based email identification consistent with the rest of the app
+      const email = (req.headers['x-user-email'] as string || req.body.email || '').toLowerCase().trim();
+      
       if (!email) {
         return res.status(400).json({ error: 'Email is required.' });
       }
@@ -94,7 +102,17 @@ export class UserController {
 
   getPayments = async (req: Request, res: Response) => {
     try {
-      const email = String(req.params.email);
+      const email = (String(req.params.email) || '').toLowerCase().trim();
+      const payments = await this.userService.getPayments(email);
+      res.json(payments);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  };
+
+  getMePayments = async (req: Request, res: Response) => {
+    try {
+      const email = (req.headers['x-user-email'] as string || '').toLowerCase().trim();
       const payments = await this.userService.getPayments(email);
       res.json(payments);
     } catch (err: any) {
