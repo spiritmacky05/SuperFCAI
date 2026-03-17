@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Edit2, X, Search, Filter } from 'lucide-react';
+import { Edit2, X, Search, Filter, Trash2 } from 'lucide-react';
 import { User, UserRole } from '../../../../types';
 
 interface AdminUserManagementProps {
@@ -185,13 +185,22 @@ const AdminUserManagement: React.FC<AdminUserManagementProps> = ({
                         </button>
                       </div>
                     ) : (
-                      <button 
-                        onClick={() => setEditingUser(user.email)}
-                        className="p-1.5 text-muted hover:text-white hover:bg-white/10 rounded transition-colors"
-                        title="Edit Role"
-                      >
-                        <Edit2 className="w-4 h-4" />
-                      </button>
+                      <div className="flex items-center justify-end gap-2">
+                        <button 
+                          onClick={() => setEditingUser(user.email)}
+                          className="p-1.5 text-muted hover:text-white hover:bg-white/10 rounded transition-colors"
+                          title="Edit Role"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button 
+                          onClick={() => onDeleteUser(user.email)}
+                          className="p-1.5 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded transition-colors"
+                          title="Delete User"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
                     )}
                   </td>
                 </tr>
@@ -231,13 +240,22 @@ const AdminUserManagement: React.FC<AdminUserManagementProps> = ({
                       <X className="w-4 h-4" />
                     </button>
                   ) : (
-                    <button 
-                      onClick={() => setEditingUser(user.email)}
-                      className="p-1.5 text-muted hover:text-white hover:bg-white/10 rounded transition-colors"
-                      title="Edit Role"
-                    >
-                      <Edit2 className="w-4 h-4" />
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button 
+                        onClick={() => setEditingUser(user.email)}
+                        className="p-1.5 text-muted hover:text-white hover:bg-white/10 rounded transition-colors"
+                        title="Edit Role"
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </button>
+                      <button 
+                        onClick={() => onDeleteUser(user.email)}
+                        className="p-1.5 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded transition-colors"
+                        title="Delete User"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   )}
                 </div>
               </div>

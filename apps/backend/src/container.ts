@@ -27,10 +27,10 @@ export const buildContainer = (db: DB) => {
   const knowledgeModel = new KnowledgeModel(db);
   const errorReportModel = new ErrorReportModel(db);
 
-  const userService = new UserService(userModel);
   const reportService = new ReportService(reportModel);
   const knowledgeService = new KnowledgeService(knowledgeModel);
   const emailService = new EmailService();
+  const userService = new UserService(userModel, emailService);
   const errorReportService = new ErrorReportService(errorReportModel, emailService);
   const aiService = new AiService(knowledgeService);
   const paymongoService = new PaymongoService();

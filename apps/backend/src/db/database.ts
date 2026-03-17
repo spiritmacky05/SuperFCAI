@@ -33,7 +33,9 @@ export class SQLiteDB implements DB {
         subscription_expiry DATETIME,
         last_payment_date DATETIME,
         usage_reset_date DATETIME,
-        session_id TEXT
+        session_id TEXT,
+        reset_password_token TEXT,
+        reset_password_token_expiry DATETIME
       );
       CREATE TABLE IF NOT EXISTS reports (
         id TEXT PRIMARY KEY,
@@ -237,6 +239,27 @@ export class SQLiteDB implements DB {
       migrateToV3();
       this.db.prepare('INSERT OR IGNORE INTO schema_migrations (version) VALUES (3)').run();
       console.log('[MIGRATION] Migration V3 Complete.');
+    }
+    
+    // Migration V4 - Add reset password token columns
+    const migrationV4Applied = this.db.prepare('SELECT 1 FROM schema_migrations WHERE version = 4').get();
+    if (!migrationV4Applied) {
+      console.log('[MIGRATION] Running V4 Migration (Adding reset password columns)...');
+      try {
+        this.db.exec(`
+          ALTER TABLE users ADD COLUMN reset_password_token TEXT;
+          ALTER TABLE users ADD COLUMN reset_password_token_expiry DATETIME;
+        `);
+        this.db.prepare('INSERT OR IGNORE INTO schema_migrations (version) VALUES (4)').run();
+        console.log('[MIGRATION] Migration V4 Complete.');
+      } catch (e: any) {
+        if (e.message.includes('duplicate column name')) {
+          this.db.prepare('INSERT OR IGNORE INTO schema_migrations (version) VALUES (4)').run();
+          console.log('[MIGRATION] Migration V4 already applied (columns exist).');
+        } else {
+          throw e;
+        }
+      }
     }
 
     this.db.exec(`

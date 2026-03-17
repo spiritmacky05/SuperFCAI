@@ -6,19 +6,34 @@ interface AuthFormsProps {
   onLogin: (user: User) => void;
 }
 
-type ViewState = 'login' | 'signup' | 'forgot';
+type ViewState = 'login' | 'signup' | 'forgot' | 'reset';
 
 const AuthForms: React.FC<AuthFormsProps> = ({ onLogin }) => {
   const [view, setView] = useState<ViewState>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [token, setToken] = useState('');
   const [name, setName] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Check for reset token in URL
+  React.useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const resetToken = urlParams.get('token');
+    if (resetToken) {
+      setToken(resetToken);
+      setView('reset');
+      // Clean up URL
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, []);
 
   const resetForm = () => {
     setEmail('');
     setPassword('');
+    setToken('');
     setName('');
     setError('');
     setSuccess('');
@@ -26,39 +41,78 @@ const AuthForms: React.FC<AuthFormsProps> = ({ onLogin }) => {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    const user = await storageService.login(email, password);
-    if (user) {
-      onLogin(user);
-    } else {
-      setError('Invalid email or password');
+    setIsLoading(true);
+    setError('');
+    try {
+      const user = await storageService.login(email, password);
+      if (user) {
+        onLogin(user);
+      } else {
+        setError('Invalid email or password');
+      }
+    } catch (err: any) {
+      setError(err.message || 'Login failed');
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
     if (!name || !email || !password) {
       setError('All fields are required');
       return;
     }
-    const success = await storageService.register({ name, email, password, role: 'free' });
-    if (success) {
+    setIsLoading(true);
+    const result = await storageService.register({ name, email, password, role: 'free' });
+    setIsLoading(false);
+    if (result.success) {
       setSuccess('Account created! Please log in.');
       setTimeout(() => {
         resetForm();
         setView('login');
       }, 1500);
     } else {
-      setError('Email already registered.');
+      setError(result.error || 'Email already registered.');
     }
   };
 
-  const handleForgot = (e: React.FormEvent) => {
+  const handleForgot = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Simulation
-    if (email) {
-      setSuccess(`If an account exists for ${email}, a reset link has been sent.`);
-    } else {
+    setError('');
+    if (!email) {
       setError('Please enter your email.');
+      return;
+    }
+    setIsLoading(true);
+    const result = await storageService.forgotPassword(email);
+    setIsLoading(false);
+    if (result.success) {
+      setSuccess(result.message || 'If an account exists, a reset link has been sent.');
+    } else {
+      setError(result.error || 'Failed to send reset link.');
+    }
+  };
+
+  const handleReset = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    if (!token || !password) {
+      setError('Token and new password are required.');
+      return;
+    }
+    setIsLoading(true);
+    const result = await storageService.resetPassword(token, password);
+    setIsLoading(false);
+    if (result.success) {
+      setSuccess(result.message || 'Password reset successfully. You can now log in.');
+      setTimeout(() => {
+        resetForm();
+        setView('login');
+      }, 2000);
+    } else {
+      setError(result.error || 'Failed to reset password.');
     }
   };
 
@@ -71,11 +125,13 @@ const AuthForms: React.FC<AuthFormsProps> = ({ onLogin }) => {
             {view === 'login' && 'Sign in to Super FC AI'}
             {view === 'signup' && 'Create Account'}
             {view === 'forgot' && 'Reset Password'}
+            {view === 'reset' && 'Set New Password'}
           </h2>
           <p className="mt-2 text-sm text-slate-600">
             {view === 'login' && 'Access your inspection history and tools'}
             {view === 'signup' && 'Get started with AI-assisted inspections'}
             {view === 'forgot' && 'Enter your email to recover access'}
+            {view === 'reset' && 'Enter your new password below'}
           </p>
         </div>
 
@@ -90,7 +146,7 @@ const AuthForms: React.FC<AuthFormsProps> = ({ onLogin }) => {
           </div>
         )}
 
-        <form className="mt-8 space-y-6" onSubmit={view === 'login' ? handleLogin : view === 'signup' ? handleSignup : handleForgot}>
+        <form className="mt-8 space-y-6" onSubmit={view === 'login' ? handleLogin : view === 'signup' ? handleSignup : view === 'forgot' ? handleForgot : handleReset}>
           <div className="space-y-5">
             {view === 'signup' && (
               <div>
@@ -106,26 +162,44 @@ const AuthForms: React.FC<AuthFormsProps> = ({ onLogin }) => {
                 />
               </div>
             )}
-            <div>
-              <label htmlFor="email-address" className="block text-sm font-bold text-slate-700 mb-1">Email Address</label>
-              <input
-                id="email-address"
-                type="email"
-                autoComplete="email"
-                required
-                className="appearance-none block w-full px-4 py-3 border border-slate-300 rounded-lg shadow-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-slate-900 font-medium bg-white"
-                placeholder="inspector@bfp.gov.ph"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            </div>
-            {view !== 'forgot' && (
+            {(view === 'login' || view === 'signup' || view === 'forgot') && (
               <div>
-                <label htmlFor="password" className="block text-sm font-bold text-slate-700 mb-1">Password</label>
+                <label htmlFor="email-address" className="block text-sm font-bold text-slate-700 mb-1">Email Address</label>
+                <input
+                  id="email-address"
+                  type="email"
+                  autoComplete="email"
+                  required
+                  className="appearance-none block w-full px-4 py-3 border border-slate-300 rounded-lg shadow-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-slate-900 font-medium bg-white"
+                  placeholder="inspector@bfp.gov.ph"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+              </div>
+            )}
+            {view === 'reset' && (
+              <div>
+                <label htmlFor="reset-token" className="block text-sm font-bold text-slate-700 mb-1">Reset Token</label>
+                <input
+                  id="reset-token"
+                  type="text"
+                  required
+                  className="appearance-none block w-full px-4 py-3 border border-slate-300 rounded-lg shadow-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-slate-900 font-medium bg-white"
+                  placeholder="Paste your token here"
+                  value={token}
+                  onChange={(e) => setToken(e.target.value)}
+                />
+              </div>
+            )}
+            {(view === 'login' || view === 'signup' || view === 'reset') && (
+              <div>
+                <label htmlFor="password" className="block text-sm font-bold text-slate-700 mb-1">
+                  {view === 'reset' ? 'New Password' : 'Password'}
+                </label>
                 <input
                   id="password"
                   type="password"
-                  autoComplete="current-password"
+                  autoComplete={view === 'login' ? "current-password" : "new-password"}
                   required
                   className="appearance-none block w-full px-4 py-3 border border-slate-300 rounded-lg shadow-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-slate-900 font-medium bg-white"
                   placeholder="••••••••"
@@ -139,11 +213,17 @@ const AuthForms: React.FC<AuthFormsProps> = ({ onLogin }) => {
           <div>
             <button
               type="submit"
-              className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-bold rounded-lg text-white bg-gradient-to-r from-blue-900 to-blue-800 hover:from-blue-800 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 shadow-md transition-all transform active:scale-95"
+              disabled={isLoading}
+              className={`group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-bold rounded-lg text-white bg-gradient-to-r from-blue-900 to-blue-800 hover:from-blue-800 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 shadow-md transition-all transform active:scale-95 ${isLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
             >
-              {view === 'login' && 'Sign in'}
-              {view === 'signup' && 'Create Account'}
-              {view === 'forgot' && 'Send Reset Link'}
+              {isLoading ? 'Processing...' : (
+                <>
+                  {view === 'login' && 'Sign in'}
+                  {view === 'signup' && 'Create Account'}
+                  {view === 'forgot' && 'Send Reset Link'}
+                  {view === 'reset' && 'Reset Password'}
+                </>
+              )}
             </button>
           </div>
         </form>

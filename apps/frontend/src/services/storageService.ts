@@ -118,6 +118,38 @@ export const storageService = {
     }
   },
 
+  forgotPassword: async (email: string): Promise<{ success: boolean; message?: string; error?: string }> => {
+    try {
+      const response = await fetch(`${API_BASE}/forgot-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      });
+      const data = await response.json();
+      if (!response.ok) return { success: false, error: data.error };
+      return { success: true, message: data.message };
+    } catch (e) {
+      console.error('forgotPassword error:', e);
+      return { success: false, error: 'Connection error' };
+    }
+  },
+
+  resetPassword: async (token: string, password: string): Promise<{ success: boolean; message?: string; error?: string }> => {
+    try {
+      const response = await fetch(`${API_BASE}/reset-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, password })
+      });
+      const data = await response.json();
+      if (!response.ok) return { success: false, error: data.error };
+      return { success: true, message: data.message };
+    } catch (e) {
+      console.error('resetPassword error:', e);
+      return { success: false, error: 'Connection error' };
+    }
+  },
+
   // Knowledge Base
   saveKnowledge: async (entry: KnowledgeEntry): Promise<void> => {
     try {

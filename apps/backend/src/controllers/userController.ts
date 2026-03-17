@@ -119,4 +119,24 @@ export class UserController {
       res.status(500).json({ error: err.message });
     }
   };
+
+  forgotPassword = async (req: Request, res: Response) => {
+    try {
+      const { email } = req.body;
+      await this.userService.forgotPassword(email);
+      res.json({ success: true, message: 'If an account exists, a reset link has been sent.' });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  };
+
+  resetPassword = async (req: Request, res: Response) => {
+    try {
+      const { token, password } = req.body;
+      await this.userService.resetPassword(token, password);
+      res.json({ success: true, message: 'Password has been reset successfully.' });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  };
 }

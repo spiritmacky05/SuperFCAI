@@ -44,6 +44,8 @@ export const createApiRouter = (container: AppContainer) => {
   router.post('/login', authRateLimit, user.login);
   router.put('/users/:email', user.update);
   router.delete('/users/:email', user.delete);
+  router.post('/forgot-password', authRateLimit, user.forgotPassword);
+  router.post('/reset-password', authRateLimit, user.resetPassword);
   router.post('/users/upload-proof-of-payment', upload.single('proof'), user.uploadProofOfPayment);
   router.get('/users/:email/payments', user.getPayments);
 

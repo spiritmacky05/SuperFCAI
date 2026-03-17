@@ -26,4 +26,5 @@ export const env = {
   smtpPort: parseInt(process.env.SMTP_PORT || '587', 10),
   smtpUser: process.env.SMTP_USER,
   smtpPass: process.env.SMTP_PASS,
+  frontendUrl: process.env.FRONTEND_URL || 'http://localhost:5173',
 };

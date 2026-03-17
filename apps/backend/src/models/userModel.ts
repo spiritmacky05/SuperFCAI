@@ -29,12 +29,14 @@ export class UserModel {
     last_payment_date?: string;
     usage_reset_date?: string;
     session_id?: string;
+    reset_password_token?: string;
+    reset_password_token_expiry?: string;
   }) {
     const { 
       email, name, role, password, bfp_id_url, status, 
       bfp_account_number, proof_of_payment_url, payment_status,
       subscription_expiry, last_payment_date, usage_reset_date,
-      session_id
+      session_id, reset_password_token, reset_password_token_expiry
     } = payload;
     const existing = await this.getByEmail(email);
  
@@ -52,24 +54,27 @@ export class UserModel {
           subscription_expiry = COALESCE(?, subscription_expiry),
           last_payment_date = COALESCE(?, last_payment_date),
           usage_reset_date = COALESCE(?, usage_reset_date),
-          session_id = COALESCE(?, session_id)
+          session_id = COALESCE(?, session_id),
+          reset_password_token = COALESCE(?, reset_password_token),
+          reset_password_token_expiry = COALESCE(?, reset_password_token_expiry)
         WHERE email = LOWER(TRIM(?))`,
         [
           name ?? null, role ?? null, password ?? null, bfp_id_url ?? null, status ?? null, 
           bfp_account_number ?? null, proof_of_payment_url ?? null, payment_status ?? null,
           subscription_expiry ?? null, last_payment_date ?? null, usage_reset_date ?? null,
-          session_id ?? null, email
+          session_id ?? null, reset_password_token ?? null, reset_password_token_expiry ?? null, email
         ],
       );
     }
  
     return this.db.run(
-      'INSERT INTO users (email, name, role, password, bfp_id_url, status, bfp_account_number, proof_of_payment_url, payment_status, subscription_expiry, last_payment_date, usage_reset_date, session_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      'INSERT INTO users (email, name, role, password, bfp_id_url, status, bfp_account_number, proof_of_payment_url, payment_status, subscription_expiry, last_payment_date, usage_reset_date, session_id, reset_password_token, reset_password_token_expiry) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
       [
         email, name, role || 'free', password, bfp_id_url || null, 
         status || 'pending', bfp_account_number || null, proof_of_payment_url || null, 
         payment_status || 'none', subscription_expiry || null, 
-        last_payment_date || null, usage_reset_date || null, session_id || null
+        last_payment_date || null, usage_reset_date || null, session_id || null,
+        reset_password_token || null, reset_password_token_expiry || null
       ],
     );
   }
@@ -105,5 +110,13 @@ export class UserModel {
 
   deleteByEmail(email: string) {
     return this.db.run('DELETE FROM users WHERE email = LOWER(TRIM(?))', [email]);
+  }
+  
+  updateResetToken(email: string, token: string | null, expiry: string | null) {
+    return this.db.run('UPDATE users SET reset_password_token = ?, reset_password_token_expiry = ? WHERE email = LOWER(TRIM(?))', [token, expiry, email]);
+  }
+
+  getByResetToken(token: string) {
+    return this.db.query('SELECT * FROM users WHERE reset_password_token = ?', [token]);
   }
 }

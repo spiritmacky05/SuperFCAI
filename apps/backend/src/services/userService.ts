@@ -1,8 +1,12 @@
 import { UserModel } from '../models/userModel.ts';
 import { hashPassword, isPasswordHash, verifyPassword } from '../utils/password.ts';
+import { EmailService } from './emailService.ts';
 
 export class UserService {
-  constructor(private readonly users: UserModel) {}
+  constructor(
+    private readonly users: UserModel,
+    private readonly emailService: EmailService
+  ) {}
 
   async listUsers() {
     const users = await this.users.getAll();
@@ -174,5 +178,41 @@ export class UserService {
 
   deleteUser(email: string) {
     return this.users.deleteByEmail(email);
+  }
+
+  async forgotPassword(emailStr: string) {
+    const email = (emailStr || '').toLowerCase().trim();
+    const user = await this.users.getByEmail(email);
+    if (!user || user.length === 0) {
+      // Don't reveal if user exists for security, just return success
+      return;
+    }
+
+    const token = crypto.randomUUID();
+    const expiry = new Date();
+    expiry.setHours(expiry.getHours() + 1); // 1 hour expiry
+
+    await this.users.updateResetToken(email, token, expiry.toISOString());
+    await this.emailService.sendPasswordReset(email, token);
+  }
+
+  async resetPassword(token: string, newPasswordStr: string) {
+    const newPassword = (newPasswordStr || '').trim();
+    if (!newPassword) throw new Error('Password is required.');
+
+    const users = await this.users.getByResetToken(token);
+    if (!users || users.length === 0) {
+      throw new Error('Invalid or expired reset token.');
+    }
+
+    const user = users[0];
+    const expiry = new Date(user.reset_password_token_expiry);
+    if (expiry < new Date()) {
+      throw new Error('Invalid or expired reset token.');
+    }
+
+    const hashedPassword = await hashPassword(newPassword);
+    await this.users.updatePassword(user.email, hashedPassword);
+    await this.users.updateResetToken(user.email, null, null); // Clear token
   }
 }
