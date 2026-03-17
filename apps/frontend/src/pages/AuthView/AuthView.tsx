@@ -8,9 +8,12 @@ interface AuthViewProps {
   onLogin: (user: User) => void;
 }
 
+type AuthMode = 'login' | 'register' | 'forgot' | 'reset';
+
 const AuthView: React.FC<AuthViewProps> = ({ onLogin }) => {
-  const [isLogin, setIsLogin] = useState(true);
+  const [mode, setMode] = useState<AuthMode>('login');
   const [showPassword, setShowPassword] = useState(false);
+  const [token, setToken] = useState('');
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -19,51 +22,80 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin }) => {
     bfp_account_number: ''
   });
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Check for reset token in URL
+  React.useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const resetToken = urlParams.get('token');
+    if (resetToken) {
+      setToken(resetToken);
+      setMode('reset');
+      // Clean up URL
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setSuccess('');
+    setIsLoading(true);
 
-    if (isLogin) {
-      try {
+    try {
+      if (mode === 'login') {
         const user = await storageService.login(formData.email, formData.password);
         if (user) {
           onLogin(user);
         } else {
           setError('ACCESS DENIED: Invalid credentials');
         }
-      } catch (err: any) {
-        setError(`CONNECTION ERROR: ${err.message || 'Check your internet or server status'}`);
-      }
-    } else {
-      if (!formData.name) {
-        setError('IDENTITY REQUIRED: Name missing');
-        return;
-      }
-      if (!formData.bfp_id_url) {
-        setError('IDENTITY REQUIRED: BFP ID (Front) missing');
-        return;
-      }
-      if (!formData.bfp_account_number) {
-        setError('IDENTITY REQUIRED: BFP Account Number missing');
-        return;
-      }
-      
-      const result = await storageService.register({
-        email: formData.email,
-        password: formData.password,
-        name: formData.name,
-        role: 'free', // Default role
-        bfp_id_url: formData.bfp_id_url,
-        bfp_account_number: formData.bfp_account_number
-      });
+      } else if (mode === 'register') {
+        if (!formData.name || !formData.bfp_id_url || !formData.bfp_account_number) {
+          setError('IDENTITY REQUIRED: Missing required fields');
+          setIsLoading(false);
+          return;
+        }
+        
+        const result = await storageService.register({
+          email: formData.email,
+          password: formData.password,
+          name: formData.name,
+          role: 'free',
+          bfp_id_url: formData.bfp_id_url,
+          bfp_account_number: formData.bfp_account_number
+        });
 
-      if (result.success) {
-        setError('REGISTRATION SUCCESSFUL: Pending admin approval');
-        setIsLogin(true);
-      } else {
-        setError(`REGISTRATION FAILED: ${result.error || 'Check details and try again'}`);
+        if (result.success) {
+          setSuccess('REGISTRATION SUCCESSFUL: Pending admin approval');
+          setMode('login');
+        } else {
+          setError(`REGISTRATION FAILED: ${result.error || 'Check details and try again'}`);
+        }
+      } else if (mode === 'forgot') {
+        const result = await storageService.forgotPassword(formData.email);
+        if (result.success) {
+          setSuccess(result.message || 'If an account exists, a reset link has been sent.');
+        } else {
+          setError(result.error || 'Failed to send reset link.');
+        }
+      } else if (mode === 'reset') {
+        const result = await storageService.resetPassword(token, formData.password);
+        if (result.success) {
+          setSuccess(result.message || 'Password reset successfully. Initiating login terminal...');
+          setTimeout(() => {
+            setMode('login');
+            setSuccess('');
+          }, 2000);
+        } else {
+          setError(result.error || 'Failed to reset password.');
+        }
       }
+    } catch (err: any) {
+      setError(`CRITICAL ERROR: ${err.message || 'System failure'}`);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -95,11 +127,16 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin }) => {
             <Logo size="xl" />
           </div>
           <h1 className="text-2xl font-display text-white tracking-widest mb-1">SUPER FC AI</h1>
-          <p className="text-cobalt text-xs font-mono tracking-[0.2em] uppercase">Secure Access Terminal</p>
+          <p className="text-cobalt text-xs font-mono tracking-[0.2em] uppercase">
+            {mode === 'login' && 'Secure Access Terminal'}
+            {mode === 'register' && 'New ID Registration'}
+            {mode === 'forgot' && 'Credential Recovery'}
+            {mode === 'reset' && 'Password Override'}
+          </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
-          {!isLogin && (
+          {mode === 'register' && (
             <>
               <div>
                 <label className="block text-xs font-mono text-muted mb-1 uppercase tracking-wider">RANK & FULL NAME</label>
@@ -153,42 +190,65 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin }) => {
             </>
           )}
 
-          <div>
-            <label className="block text-xs font-mono text-muted mb-1 uppercase tracking-wider">Access ID (Email)</label>
-            <div className="relative group">
-              <Mail className="absolute left-3 top-3 h-5 w-5 text-muted group-focus-within:text-cobalt transition-colors" />
-              <input
-                type="email"
-                required
-                className="w-full pl-10 pr-4 py-3 rounded-lg glass-input focus:ring-1 focus:ring-cobalt/50 placeholder-muted/30 font-mono text-sm"
-                placeholder="ID@BFP.GOV.PH"
-                value={formData.email}
-                onChange={e => setFormData({...formData, email: e.target.value})}
-              />
+          {mode === 'reset' && (
+            <div>
+              <label className="block text-xs font-mono text-muted mb-1 uppercase tracking-wider">Security Token</label>
+              <div className="relative group">
+                <Hash className="absolute left-3 top-3 h-5 w-5 text-muted group-focus-within:text-cobalt transition-colors" />
+                <input
+                  type="text"
+                  required
+                  className="w-full pl-10 pr-4 py-3 rounded-lg glass-input focus:ring-1 focus:ring-cobalt/50 placeholder-muted/30 font-mono text-sm"
+                  placeholder="PASTE TOKEN HERE"
+                  value={token}
+                  onChange={e => setToken(e.target.value)}
+                />
+              </div>
             </div>
-          </div>
+          )}
 
-          <div>
-            <label className="block text-xs font-mono text-muted mb-1 uppercase tracking-wider">Passcode</label>
-            <div className="relative group">
-              <Lock className="absolute left-3 top-3 h-5 w-5 text-muted group-focus-within:text-cobalt transition-colors" />
-              <input
-                type={showPassword ? "text" : "password"}
-                required
-                className="w-full pl-10 pr-12 py-3 rounded-lg glass-input focus:ring-1 focus:ring-cobalt/50 placeholder-muted/30 font-mono text-sm"
-                placeholder="••••••••"
-                value={formData.password}
-                onChange={e => setFormData({...formData, password: e.target.value})}
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-3 text-muted hover:text-white focus:outline-none transition-colors"
-              >
-                {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-              </button>
+          {(mode === 'login' || mode === 'register' || mode === 'forgot') && (
+            <div>
+              <label className="block text-xs font-mono text-muted mb-1 uppercase tracking-wider">Access ID (Email)</label>
+              <div className="relative group">
+                <Mail className="absolute left-3 top-3 h-5 w-5 text-muted group-focus-within:text-cobalt transition-colors" />
+                <input
+                  type="email"
+                  required
+                  className="w-full pl-10 pr-4 py-3 rounded-lg glass-input focus:ring-1 focus:ring-cobalt/50 placeholder-muted/30 font-mono text-sm"
+                  placeholder="ID@BFP.GOV.PH"
+                  value={formData.email}
+                  onChange={e => setFormData({...formData, email: e.target.value})}
+                />
+              </div>
             </div>
-          </div>
+          )}
+
+          {(mode === 'login' || mode === 'register' || mode === 'reset') && (
+            <div>
+              <label className="block text-xs font-mono text-muted mb-1 uppercase tracking-wider">
+                {mode === 'reset' ? 'New Passcode' : 'Passcode'}
+              </label>
+              <div className="relative group">
+                <Lock className="absolute left-3 top-3 h-5 w-5 text-muted group-focus-within:text-cobalt transition-colors" />
+                <input
+                  type={showPassword ? "text" : "password"}
+                  required
+                  className="w-full pl-10 pr-12 py-3 rounded-lg glass-input focus:ring-1 focus:ring-cobalt/50 placeholder-muted/30 font-mono text-sm"
+                  placeholder="••••••••"
+                  value={formData.password}
+                  onChange={e => setFormData({...formData, password: e.target.value})}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-3 text-muted hover:text-white focus:outline-none transition-colors"
+                >
+                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                </button>
+              </div>
+            </div>
+          )}
 
           {error && (
             <div className="p-3 bg-red-900/20 border border-red-500/30 text-red-400 text-xs font-mono rounded-lg flex items-center gap-2 animate-pulse">
@@ -197,22 +257,58 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin }) => {
             </div>
           )}
 
+          {success && (
+            <div className="p-3 bg-emerald-900/20 border border-emerald-500/30 text-emerald-400 text-xs font-mono rounded-lg flex items-center gap-2">
+              <span className="block w-1.5 h-1.5 bg-emerald-500 rounded-full shadow-[0_0_5px_#10b981]"></span>
+              {success}
+            </div>
+          )}
+
           <button
             type="submit"
-            className="w-full py-3 cyber-button-primary rounded-lg text-sm tracking-widest uppercase hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(0,242,255,0.2)]"
+            disabled={isLoading}
+            className={`w-full py-3 cyber-button-primary rounded-lg text-sm tracking-widest uppercase hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(0,242,255,0.2)] ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
-            {isLogin ? <LogIn className="w-4 h-4" /> : <UserPlus className="w-4 h-4" />}
-            {isLogin ? 'INITIATE LOGIN' : 'REGISTER ID'}
+            {isLoading ? (
+              <span className="flex items-center gap-2">
+                <span className="w-4 h-4 border-2 border-cobalt border-t-transparent rounded-full animate-spin"></span>
+                PROCESSING...
+              </span>
+            ) : (
+              <>
+                {mode === 'login' && <><LogIn className="w-4 h-4" /> INITIATE LOGIN</>}
+                {mode === 'register' && <><UserPlus className="w-4 h-4" /> REGISTER ID</>}
+                {mode === 'forgot' && 'REQUEST RESET LINK'}
+                {mode === 'reset' && 'OVERRIDE PASSCODE'}
+              </>
+            )}
           </button>
         </form>
 
-        <div className="mt-8 text-center">
-          <button
-            onClick={() => { setIsLogin(!isLogin); setError(''); }}
-            className="text-xs text-muted hover:text-cobalt font-mono tracking-wider transition-colors uppercase border-b border-transparent hover:border-cobalt/50 pb-0.5"
-          >
-            {isLogin ? "Request New Access ID" : "Return to Login Terminal"}
-          </button>
+        <div className="mt-8 flex flex-col items-center gap-4">
+          {mode === 'login' ? (
+            <div className="w-full flex items-center justify-between px-1">
+              <button
+                onClick={() => { setMode('register'); setError(''); setSuccess(''); }}
+                className="text-xs text-muted hover:text-cobalt font-mono tracking-wider transition-colors uppercase border-b border-transparent hover:border-cobalt/50"
+              >
+                Request Access ID
+              </button>
+              <button
+                onClick={() => { setMode('forgot'); setError(''); setSuccess(''); }}
+                className="text-xs text-muted hover:text-tangerine font-mono tracking-wider transition-colors uppercase border-b border-transparent hover:border-tangerine/50"
+              >
+                Forgot Passcode?
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => { setMode('login'); setError(''); setSuccess(''); }}
+              className="text-xs text-muted hover:text-cobalt font-mono tracking-wider transition-colors uppercase border-b border-transparent hover:border-cobalt/50 pb-0.5"
+            >
+              Return to Login Terminal
+            </button>
+          )}
         </div>
       </div>
     </div>
