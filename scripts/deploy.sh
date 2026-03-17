@@ -4,9 +4,10 @@
 
 echo "🚀 Starting Deployment..."
 
-# 1. Pull latest code from the current branch
-echo "📥 Pulling latest changes from git..."
-CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+# 1. Pull latest code from the refactor branch
+echo "📥 Pulling latest changes from git (refactor branch)..."
+CURRENT_BRANCH="refactor"
+git checkout "$CURRENT_BRANCH" || { echo "❌ Failed to switch to branch $CURRENT_BRANCH"; exit 1; }
 git pull origin "$CURRENT_BRANCH" --ff-only || {
     echo "⚠️ Git pull failed. This usually happens if the server history diverged."
     echo "💡 Try running: git reset --hard origin/$CURRENT_BRANCH"

@@ -84,7 +84,7 @@ export const disablePoweredBy = (_req: Request, res: Response, next: NextFunctio
 export const createSessionAuthMiddleware = (userService: any) => {
   return async (req: Request, res: Response, next: NextFunction) => {
     // Relative paths since middleware is mounted on /api
-    const publicPaths = ['/login', '/health', '/paymongo/webhook', '/diag/db-health'];
+    const publicPaths = ['/login', '/health', '/paymongo/webhook', '/diag/db-health', '/forgot-password', '/reset-password'];
     const isPublic = publicPaths.includes(req.path) || (req.method === 'POST' && req.path === '/users');
 
     if (req.path === '/login/status') {
