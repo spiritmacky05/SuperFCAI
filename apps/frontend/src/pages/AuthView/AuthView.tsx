@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { User } from '../../types';
 import Logo from '../../components/Logo';
 import { storageService } from '../../services/storageService';
+import LoadingScreen from '../../components/LoadingScreen';
 import { Lock, Mail, User as UserIcon, LogIn, UserPlus, Eye, EyeOff, Upload, Hash } from 'lucide-react';
 
 interface AuthViewProps {
@@ -124,6 +125,12 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin }) => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-obsidian p-4 relative overflow-hidden google-auto-ads-ignore">
+      {isLoading && (
+        <LoadingScreen 
+          message={mode === 'login' ? "INITIATING SECURE ACCESS..." : mode === 'register' ? "PROCESSING REGISTRATION..." : "COMMUNICATING WITH SERVER..."}
+          subMessage="ENCRYPTING TUNNEL | RE-ENFORCING PROTOCOLS"
+        />
+      )}
       {/* Background Elements */}
       <div className="absolute top-[-20%] left-[-20%] w-[60%] h-[60%] bg-cobalt/5 rounded-full blur-[120px] pointer-events-none"></div>
       <div className="absolute bottom-[-20%] right-[-20%] w-[60%] h-[60%] bg-tangerine/5 rounded-full blur-[120px] pointer-events-none"></div>
