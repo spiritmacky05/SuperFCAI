@@ -5,6 +5,7 @@ import ResultDisplay from '../../components/ResultDisplay';
 import ChatBox from '../../components/ChatBox';
 import NTCGenerator from '../../components/NTCGenerator';
 import AdBanner from '../../components/AdBanner';
+import LoadingScreen from '../../components/LoadingScreen';
 
 interface ReportGenProps {
   params: SearchParams;
@@ -102,11 +103,11 @@ export const MainView: React.FC<MainViewProps> = ({ user, reportGen, setIsAssist
           )}
           
           {isLoading && (
-            <div className="space-y-6 animate-pulse glass-panel p-8 rounded-xl">
-                <div className="h-8 bg-glass rounded w-1/3 mb-4"></div>
-                <div className="h-4 bg-glass rounded w-3/4"></div>
-                <div className="h-4 bg-glass rounded w-1/2"></div>
-                <div className="h-48 bg-glass rounded border border-glass"></div>
+            <div className="fixed inset-0 z-[100]">
+              <LoadingScreen 
+                message="ANALYZING PARAMETERS..." 
+                subMessage="CONSULTING FIRE CODE NEURAL NETWORK" 
+              />
             </div>
           )}
         </div>

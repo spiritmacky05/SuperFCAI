@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Edit2, X, Search, Filter, Trash2 } from 'lucide-react';
+import ConfirmationModal from '../../../../components/ConfirmationModal';
 import { User, UserRole } from '../../../../types';
 
 interface AdminUserManagementProps {
@@ -7,7 +8,7 @@ interface AdminUserManagementProps {
   editingUser: string | null;
   setEditingUser: (email: string | null) => void;
   onUpdateRole: (email: string, newRole: UserRole) => Promise<void>;
-  onToggleStatus: (email: string) => Promise<void>;
+  onToggleStatus: (email: string, newStatus?: 'approved' | 'rejected') => Promise<void>;
   onOpenPaymentModal: (user: User) => void;
   onSelectUser: (user: User) => void;
   onDeleteUser: (email: string) => Promise<void>;
@@ -26,6 +27,64 @@ const AdminUserManagement: React.FC<AdminUserManagementProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+    onCancel?: () => void;
+    variant: 'primary' | 'danger' | 'warning';
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {},
+    variant: 'primary'
+  });
+
+  const closeConfirm = () => setConfirmModal(prev => ({ ...prev, isOpen: false }));
+
+  const handleStatusClick = (user: User) => {
+    if (user.status === 'rejected') {
+      setConfirmModal({
+        isOpen: true,
+        title: 'RE-APPROVE USER',
+        message: `Do you want to re-approve ${user.name}? This will restore their access to the system.`,
+        onConfirm: () => onToggleStatus(user.email, 'approved'),
+        variant: 'primary'
+      });
+      return;
+    }
+
+    setConfirmModal({
+      isOpen: true,
+      title: 'APPROVE USER',
+      message: `Do you want to approve ${user.name}?`,
+      onConfirm: () => onToggleStatus(user.email, 'approved'),
+      onCancel: () => onToggleStatus(user.email, 'rejected'),
+      variant: 'primary'
+    });
+  };
+
+  const handleEditClick = (email: string) => {
+    setConfirmModal({
+      isOpen: true,
+      title: 'EDIT CLEARANCE',
+      message: 'Are you sure you want to modify this user\'s clearance level?',
+      onConfirm: () => setEditingUser(email),
+      variant: 'warning'
+    });
+  };
+
+  const handleDeleteClick = (email: string) => {
+    setConfirmModal({
+      isOpen: true,
+      title: 'TERMINATE USER',
+      message: 'CRITICAL: This will permanently delete the user from the database. This action cannot be undone.',
+      onConfirm: () => onDeleteUser(email),
+      variant: 'danger'
+    });
+  };
 
   const filteredUsers = useMemo(() => {
     return users.filter(user => {
@@ -81,6 +140,7 @@ const AdminUserManagement: React.FC<AdminUserManagementProps> = ({
               <option value="all">ALL STATUS</option>
               <option value="approved">APPROVED</option>
               <option value="pending">PENDING</option>
+              <option value="rejected">REJECTED</option>
             </select>
           </div>
         </div>
@@ -144,13 +204,15 @@ const AdminUserManagement: React.FC<AdminUserManagementProps> = ({
                   </td>
                   <td className="p-4">
                     <button
-                      onClick={() => onToggleStatus(user.email)}
-                      className={`px-2 py-1 rounded text-[10px] font-mono uppercase tracking-wider border transition-colors hover:brightness-110 ${
+                      onClick={() => handleStatusClick(user)}
+                      className={`px-2 py-1 rounded text-[10px] font-mono uppercase tracking-wider border transition-all duration-300 hover:scale-110 hover:brightness-125 hover:shadow-[0_0_15px_rgba(0,0,0,0.3)] ${
                         user.status === 'pending'
                           ? 'bg-yellow-900/20 text-yellow-400 border-yellow-500/30'
-                          : 'bg-emerald-900/20 text-emerald-400 border-emerald-500/30'
+                          : user.status === 'rejected'
+                            ? 'bg-red-900/20 text-red-400 border-red-500/30'
+                            : 'bg-emerald-900/20 text-emerald-400 border-emerald-500/30'
                       }`}
-                      title="Toggle status"
+                      title={user.status === 'rejected' ? 'Click to re-approve' : 'Toggle status'}
                     >
                       {user.status || 'approved'}
                     </button>
@@ -187,15 +249,15 @@ const AdminUserManagement: React.FC<AdminUserManagementProps> = ({
                     ) : (
                       <div className="flex items-center justify-end gap-2">
                         <button 
-                          onClick={() => setEditingUser(user.email)}
-                          className="p-1.5 text-muted hover:text-white hover:bg-white/10 rounded transition-colors"
+                          onClick={() => handleEditClick(user.email)}
+                          className="p-1.5 text-muted hover:text-white hover:bg-white/10 hover:scale-125 transition-all duration-200 rounded"
                           title="Edit Role"
                         >
                           <Edit2 className="w-4 h-4" />
                         </button>
                         <button 
-                          onClick={() => onDeleteUser(user.email)}
-                          className="p-1.5 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded transition-colors"
+                          onClick={() => handleDeleteClick(user.email)}
+                          className="p-1.5 text-red-400 hover:text-red-300 hover:bg-red-500/10 hover:scale-125 transition-all duration-200 rounded"
                           title="Delete User"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -242,15 +304,15 @@ const AdminUserManagement: React.FC<AdminUserManagementProps> = ({
                   ) : (
                     <div className="flex items-center gap-2">
                       <button 
-                        onClick={() => setEditingUser(user.email)}
-                        className="p-1.5 text-muted hover:text-white hover:bg-white/10 rounded transition-colors"
+                        onClick={() => handleEditClick(user.email)}
+                        className="p-1.5 text-muted hover:text-white hover:bg-white/10 hover:scale-110 transition-all rounded"
                         title="Edit Role"
                       >
                         <Edit2 className="w-4 h-4" />
                       </button>
                       <button 
-                        onClick={() => onDeleteUser(user.email)}
-                        className="p-1.5 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded transition-colors"
+                        onClick={() => handleDeleteClick(user.email)}
+                        className="p-1.5 text-red-400 hover:text-red-300 hover:bg-red-500/10 hover:scale-110 transition-all rounded"
                         title="Delete User"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -292,13 +354,15 @@ const AdminUserManagement: React.FC<AdminUserManagementProps> = ({
                 <div className="flex items-center gap-2">
                   <span className="text-[10px] text-muted uppercase font-mono tracking-wider">Status:</span>
                   <button
-                    onClick={() => onToggleStatus(user.email)}
-                    className={`px-2 py-1 rounded text-[10px] font-mono uppercase tracking-wider border transition-colors hover:brightness-110 ${
+                    onClick={() => handleStatusClick(user)}
+                    className={`px-2 py-1 rounded text-[10px] font-mono uppercase tracking-wider border transition-all duration-300 hover:scale-110 ${
                       user.status === 'pending'
                         ? 'bg-yellow-900/20 text-yellow-400 border-yellow-500/30'
-                        : 'bg-emerald-900/20 text-emerald-400 border-emerald-500/30'
+                        : user.status === 'rejected'
+                          ? 'bg-red-900/20 text-red-400 border-red-500/30'
+                          : 'bg-emerald-900/20 text-emerald-400 border-emerald-500/30'
                     }`}
-                    title="Toggle status"
+                    title={user.status === 'rejected' ? 'Click to re-approve' : 'Toggle status'}
                   >
                     {user.status || 'approved'}
                   </button>
@@ -335,6 +399,16 @@ const AdminUserManagement: React.FC<AdminUserManagementProps> = ({
           )}
         </div>
       </div>
+
+      <ConfirmationModal
+        isOpen={confirmModal.isOpen}
+        onClose={closeConfirm}
+        onConfirm={confirmModal.onConfirm}
+        onCancel={confirmModal.onCancel}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        variant={confirmModal.variant}
+      />
     </div>
   );
 };

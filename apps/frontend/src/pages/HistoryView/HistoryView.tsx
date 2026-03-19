@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { SavedReport } from '../../types';
 import { storageService } from '../../services/storageService';
-import { Clock, ArrowLeft, FileText, ChevronRight, Calendar, Building, Loader2 } from 'lucide-react';
+import { Clock, ArrowLeft, FileText, ChevronRight, Calendar, Building } from 'lucide-react';
+import LoadingScreen from '../../components/LoadingScreen';
 
 interface HistoryViewProps {
   onSelect: (report: SavedReport) => void;
@@ -30,6 +31,15 @@ const HistoryView: React.FC<HistoryViewProps> = ({ onSelect, onBack }) => {
     fetchReports();
   }, []);
 
+  if (isLoading) {
+    return (
+      <LoadingScreen 
+        message="RETRIVING ARCHIVES..." 
+        subMessage="DATABASE QUERY IN PROGRESS" 
+      />
+    );
+  }
+
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">
       <button 
@@ -52,12 +62,7 @@ const HistoryView: React.FC<HistoryViewProps> = ({ onSelect, onBack }) => {
         </div>
 
         <div className="divide-y divide-glass">
-          {isLoading ? (
-            <div className="p-12 text-center text-muted m-6 rounded-lg bg-glass/20 flex flex-col items-center">
-              <Loader2 className="w-8 h-8 animate-spin mb-3 text-cobalt" />
-              <p className="font-mono text-sm">Retrieving archived data...</p>
-            </div>
-          ) : reports.length === 0 ? (
+          {reports.length === 0 ? (
             <div className="p-12 text-center text-muted border-2 border-dashed border-glass m-6 rounded-lg bg-glass/20">
               <Clock className="w-12 h-12 mx-auto mb-3 opacity-20" />
               <p className="font-mono text-sm">No inspection records found in database.</p>

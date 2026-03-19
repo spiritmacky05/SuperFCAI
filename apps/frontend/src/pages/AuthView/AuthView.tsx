@@ -47,6 +47,14 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin }) => {
       if (mode === 'login') {
         const user = await storageService.login(formData.email, formData.password);
         if (user) {
+          if (user.status === 'rejected') {
+            setError('ACCESS DENIED: Your account has been REJECTED. Contact Admin for reconsideration.');
+            return;
+          }
+          if (user.status === 'pending') {
+            setError('ACCESS DENIED: Your account is PENDING admin approval.');
+            return;
+          }
           onLogin(user);
         } else {
           setError('ACCESS DENIED: Invalid credentials');

@@ -12,6 +12,7 @@ import AdminUserManagement from './components/AdminUserManagement';
 import AdminErrorReports from './components/AdminErrorReports';
 import AdminUserModal from './components/AdminUserModal';
 import AdminPaymentModal from './components/AdminPaymentModal';
+import LoadingScreen from '../../components/LoadingScreen';
 
 interface AdminViewProps {
   currentUser?: User;
@@ -22,6 +23,7 @@ const AdminView: React.FC<AdminViewProps> = ({ currentUser }) => {
   const [knowledgeEntries, setKnowledgeEntries] = useState<KnowledgeEntry[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [errorReports, setErrorReports] = useState<ErrorReport[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [editingUser, setEditingUser] = useState<string | null>(null);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
@@ -48,18 +50,21 @@ const AdminView: React.FC<AdminViewProps> = ({ currentUser }) => {
   };
 
   const fetchData = async () => {
-    setKnowledgeEntries(await storageService.getKnowledge());
-    const fetchedUsers = await storageService.getUsers();
-    setUsers(fetchedUsers.sort((a, b) => (a.name > b.name ? 1 : -1)));
-    
     try {
+      if (users.length === 0) setIsLoading(true);
+      setKnowledgeEntries(await storageService.getKnowledge());
+      const fetchedUsers = await storageService.getUsers();
+      setUsers(fetchedUsers.sort((a, b) => (a.name > b.name ? 1 : -1)));
+      
       const data = await storageService.getErrorReports();
       if (errorReports.length > 0 && data.length > errorReports.length) {
         showToast('New AI Error Report received!', 'info');
       }
       setErrorReports(data);
     } catch (e) {
-      console.error('Failed to fetch error reports:', e);
+      console.error('Failed to fetch data:', e);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -129,7 +134,7 @@ const AdminView: React.FC<AdminViewProps> = ({ currentUser }) => {
   const handleUpdateRole = async (email: string, newRole: UserRole) => {
     const user = users.find(u => u.email === email);
     if (user) {
-      const updatedUser = { ...user, role: newRole, status: 'approved' };
+      const updatedUser: User = { ...user, role: newRole, status: 'approved' };
       await storageService.saveUser(updatedUser);
       setUsers(await storageService.getUsers());
       setEditingUser(null);
@@ -215,7 +220,7 @@ const AdminView: React.FC<AdminViewProps> = ({ currentUser }) => {
   const handleApproveUser = async (email: string) => {
     const user = users.find(u => u.email === email);
     if (user) {
-      const updatedUser = { ...user, status: 'approved' };
+      const updatedUser: User = { ...user, status: 'approved' };
       await storageService.saveUser(updatedUser);
       setUsers(await storageService.getUsers());
       setSelectedUser(updatedUser);
@@ -223,15 +228,19 @@ const AdminView: React.FC<AdminViewProps> = ({ currentUser }) => {
     }
   };
 
-  const handleToggleUserStatus = async (email: string) => {
+  const handleToggleUserStatus = async (email: string, nextStatus?: 'approved' | 'rejected') => {
     const user = users.find(u => u.email === email);
     if (!user) return;
-    const nextStatus = (user.status || 'approved') === 'pending' ? 'approved' : 'pending';
-    const updatedUser = { ...user, status: nextStatus };
+    
+    // If no explicit status provided, do a default toggle
+    const targetStatus = nextStatus || 
+      ((user.status || 'approved') === 'pending' || (user.status || 'approved') === 'rejected' ? 'approved' : 'pending');
+    
+    const updatedUser: User = { ...user, status: targetStatus };
     await storageService.saveUser(updatedUser);
     setUsers(await storageService.getUsers());
     if (selectedUser?.email === email) setSelectedUser(updatedUser);
-    showToast(`User status updated to ${nextStatus}.`, 'success');
+    showToast(`User status updated to ${targetStatus.toUpperCase()}.`, 'success');
   };
 
   const handleResetWeeklyLimit = async (email: string) => {
@@ -241,6 +250,15 @@ const AdminView: React.FC<AdminViewProps> = ({ currentUser }) => {
   };
 
   const actualCurrentUser = users.find(u => u.email === currentUser?.email) || currentUser;
+
+  if (isLoading) {
+    return (
+      <LoadingScreen 
+        message="ACCESSING NEXUS TERMINAL..." 
+        subMessage="AUTHORIZING ADMIN CLEARANCE" 
+      />
+    );
+  }
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-6xl">

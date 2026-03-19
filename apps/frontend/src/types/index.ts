@@ -37,7 +37,7 @@ export interface User {
   role: UserRole;
   password?: string; // Only for local storage logic, normally hashed
   bfp_id_url?: string;
-  status?: string;
+  status?: 'pending' | 'approved' | 'rejected';
   bfp_account_number?: string;
   payment_status?: 'none' | 'pending' | 'approved' | 'rejected';
   proof_of_payment_url?: string;
