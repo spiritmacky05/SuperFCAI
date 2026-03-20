@@ -1,0 +1,29 @@
+{
+  "name": "Super Fire Code AI",
+  "short_name": "SuperFC AI",
+  "description": "AI-powered Fire Safety Inspection Assistant for BFP personnel.",
+  "theme_color": "#0B0E14",
+  "background_color": "#0B0E14",
+  "display": "standalone",
+  "orientation": "portrait",
+  "start_url": "/",
+  "scope": "/",
+  "icons": [
+    {
+      "src": "/logo.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/logo.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

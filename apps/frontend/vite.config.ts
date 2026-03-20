@@ -38,23 +38,19 @@ export default defineConfig(({ mode }) => {
         react(),
         VitePWA({
           registerType: 'autoUpdate',
-          injectRegister: null,
-          includeAssets: ['logo.png'],
+          injectRegister: 'script',
+          includeAssets: ['logo.png', 'new_logo.png'],
           manifest: {
-            name: 'Super FC AI',
-            short_name: 'SuperFC',
-            description: 'Super FC AI Application',
+            name: 'Super Fire Code AI',
+            short_name: 'SuperFC AI',
+            description: 'AI-powered Fire Safety Inspection Assistant for BFP personnel.',
             theme_color: '#0B0E14',
             background_color: '#0B0E14',
             display: 'standalone',
+            orientation: 'portrait',
             start_url: '/',
+            scope: '/',
             icons: [
-              {
-                src: '/logo.png',
-                sizes: 'any',
-                type: 'image/png',
-                purpose: 'any maskable'
-              },
               {
                 src: '/logo.png',
                 sizes: '192x192',
@@ -64,12 +60,76 @@ export default defineConfig(({ mode }) => {
                 src: '/logo.png',
                 sizes: '512x512',
                 type: 'image/png'
+              },
+              {
+                src: '/logo.png',
+                sizes: '512x512',
+                type: 'image/png',
+                purpose: 'maskable'
               }
             ]
           },
+          workbox: {
+            globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
+            runtimeCaching: [
+              {
+                // Cache Google Fonts stylesheets
+                urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
+                handler: 'CacheFirst',
+                options: {
+                  cacheName: 'google-fonts-cache',
+                  expiration: {
+                    maxEntries: 10,
+                    maxAgeSeconds: 60 * 60 * 24 * 365, // 1 year
+                  },
+                  cacheableResponse: { statuses: [0, 200] },
+                },
+              },
+              {
+                // Cache Google Fonts files
+                urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/i,
+                handler: 'CacheFirst',
+                options: {
+                  cacheName: 'gstatic-fonts-cache',
+                  expiration: {
+                    maxEntries: 20,
+                    maxAgeSeconds: 60 * 60 * 24 * 365, // 1 year
+                  },
+                  cacheableResponse: { statuses: [0, 200] },
+                },
+              },
+              {
+                // API calls — serve cached data when offline (NetworkFirst)
+                urlPattern: /^\/api\/.*/i,
+                handler: 'NetworkFirst',
+                options: {
+                  cacheName: 'api-cache',
+                  expiration: {
+                    maxEntries: 50,
+                    maxAgeSeconds: 60 * 60 * 24, // 24 hours
+                  },
+                  networkTimeoutSeconds: 10,
+                  cacheableResponse: { statuses: [0, 200] },
+                },
+              },
+              {
+                // All other static assets — StaleWhileRevalidate
+                urlPattern: /\.(?:js|css|png|jpg|jpeg|svg|gif|ico|woff|woff2)$/i,
+                handler: 'StaleWhileRevalidate',
+                options: {
+                  cacheName: 'static-assets-cache',
+                  expiration: {
+                    maxEntries: 100,
+                    maxAgeSeconds: 60 * 60 * 24 * 30, // 30 days
+                  },
+                },
+              },
+            ],
+          },
           devOptions: {
-            enabled: false
-          }
+            enabled: true,
+            type: 'module',
+          },
         })
       ],
       define: {
