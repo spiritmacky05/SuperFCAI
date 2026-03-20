@@ -375,7 +375,7 @@ Thank you for supporting Super FC AI!
                     className={ui.upgradeButton}
                   >
                     <CreditCard size={20} />
-                    DONATE 99 TO BE PRO
+                    DONATE NOW
                   </button>
                   <p className="text-[10px] text-center text-muted mt-3 font-mono uppercase tracking-widest">Secure Checkout (New Tab)</p>
 
