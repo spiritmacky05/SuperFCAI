@@ -21,7 +21,7 @@
     "start:backend": "npm run start -w @superfcai/backend",
     "lint": "npm run lint -ws --if-present",
     "backup": "./scripts/backup.sh",
-    "deploy": "git pull && docker compose up -d --build"
+    "deploy": "git checkout refactor && git pull origin refactor && docker compose up -d --build"
   },
   "devDependencies": {
     "concurrently": "^9.2.1"
