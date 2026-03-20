@@ -356,7 +356,7 @@ Thank you for supporting Super FC AI!
                 {[
                   'Unlimited AI Generations',
                   'Advanced Fire Code References',
-                  'Official NTC Layout Assistance',
+                  'Priority Support Access',
                   'Priority Model Access (Pro-3.1)'
                 ].map((feature, i) => (
                   <li key={i} className="flex items-center gap-2 text-sm text-silver">
