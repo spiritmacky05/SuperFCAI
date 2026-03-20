@@ -414,8 +414,8 @@ const AdminUserManagement: React.FC<AdminUserManagementProps> = ({
         </div>
       </div>
 
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between glass-panel p-4 rounded-xl border border-glass">
+      {totalPages >= 1 && (
+        <div className="flex items-center justify-between glass-panel p-4 rounded-xl border border-glass mt-4">
           <button
             onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
             disabled={currentPage === 1}

@@ -52,15 +52,19 @@ const AdminView: React.FC<AdminViewProps> = ({ currentUser }) => {
   const fetchData = async () => {
     try {
       if (users.length === 0) setIsLoading(true);
-      setKnowledgeEntries(await storageService.getKnowledge());
-      const fetchedUsers = await storageService.getUsers();
+      const [knowledge, fetchedUsers, reports] = await Promise.all([
+        storageService.getKnowledge(),
+        storageService.getUsers(),
+        storageService.getErrorReports()
+      ]);
+
+      setKnowledgeEntries(knowledge);
       setUsers(fetchedUsers.sort((a, b) => (a.name > b.name ? 1 : -1)));
       
-      const data = await storageService.getErrorReports();
-      if (errorReports.length > 0 && data.length > errorReports.length) {
+      if (errorReports.length > 0 && reports.length > errorReports.length) {
         showToast('New AI Error Report received!', 'info');
       }
-      setErrorReports(data);
+      setErrorReports(reports);
     } catch (e) {
       console.error('Failed to fetch data:', e);
     } finally {
