@@ -17,7 +17,7 @@ const AccountView: React.FC<AccountViewProps> = ({ user }) => {
   useEffect(() => {
     const count = localStorage.getItem('gemini_usage_count');
     if (count) {
-      setUsageCount(parseInt(count, 10));
+      setUsageCount(parseInt(count, 100));
     }
   }, []);
 
@@ -120,7 +120,7 @@ const AccountView: React.FC<AccountViewProps> = ({ user }) => {
               style={{ width: `${Math.min((usageCount / 25) * 100, 100)}%` }}
             ></div>
           </div>
-          <p className="text-[10px] text-right text-muted mt-1 font-mono">Weekly Limit: 25</p>
+          <p className="text-[10px] text-right text-muted mt-1 font-mono">Weekly Limit: 100</p>
         </div>
 
         {/* Profile Section */}
@@ -166,7 +166,7 @@ const AccountView: React.FC<AccountViewProps> = ({ user }) => {
                 <Zap className="text-yellow-400 fill-yellow-400" />
                 UPGRADE TO PRO
               </h3>
-              <p className="text-muted mb-6">Unlock advanced features and higher usage limits for only 99 pesos per month. This minimal payment will help to support in the system maintenance, hosting and AI subscription.</p>
+              <p className="text-muted mb-6">Unlock advanced features and higher usage limits, donate only P99.OO pesos per month. This minimal donation will help to support in the system maintenance, hosting and AI subscription.</p>
               
               <ul className="space-y-2 mb-6">
                 {[
