@@ -86,6 +86,9 @@ const AdminUserManagement: React.FC<AdminUserManagementProps> = ({
     });
   };
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+
   const filteredUsers = useMemo(() => {
     return users.filter(user => {
       const matchesSearch = 
@@ -98,6 +101,17 @@ const AdminUserManagement: React.FC<AdminUserManagementProps> = ({
       return matchesSearch && matchesRole && matchesStatus;
     });
   }, [users, searchQuery, roleFilter, statusFilter]);
+
+  // Reset to page 1 when filters change
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, roleFilter, statusFilter]);
+
+  const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
+  const paginatedUsers = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return filteredUsers.slice(startIndex, startIndex + itemsPerPage);
+  }, [filteredUsers, currentPage]);
 
   return (
     <div className="space-y-4">
@@ -165,7 +179,7 @@ const AdminUserManagement: React.FC<AdminUserManagementProps> = ({
               </tr>
             </thead>
             <tbody className="divide-y divide-glass">
-              {filteredUsers.map((user) => (
+              {paginatedUsers.map((user) => (
                 <tr key={user.email} className="hover:bg-white/5 transition-colors">
                   <td className="p-4 text-silver font-mono text-sm">
                     <button 
@@ -280,7 +294,7 @@ const AdminUserManagement: React.FC<AdminUserManagementProps> = ({
 
         {/* Mobile View */}
         <div className="md:hidden divide-y divide-glass">
-          {filteredUsers.map((user) => (
+          {paginatedUsers.map((user) => (
             <div key={user.email} className="p-4 space-y-3 hover:bg-white/5 transition-colors">
               <div className="flex justify-between items-start">
                 <div>
@@ -399,6 +413,33 @@ const AdminUserManagement: React.FC<AdminUserManagementProps> = ({
           )}
         </div>
       </div>
+
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between glass-panel p-4 rounded-xl border border-glass">
+          <button
+            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+            disabled={currentPage === 1}
+            className="px-4 py-2 text-xs font-mono font-bold text-cobalt bg-cobalt/10 border border-cobalt/30 rounded-lg hover:bg-cobalt/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+          >
+            PREV
+          </button>
+          
+          <div className="flex items-center gap-2 text-xs font-mono">
+            <span className="text-muted">PAGE</span>
+            <span className="text-white bg-obsidian/50 px-3 py-1 rounded border border-glass">{currentPage}</span>
+            <span className="text-muted">OF</span>
+            <span className="text-white">{totalPages}</span>
+          </div>
+
+          <button
+            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+            disabled={currentPage === totalPages}
+            className="px-4 py-2 text-xs font-mono font-bold text-cobalt bg-cobalt/10 border border-cobalt/30 rounded-lg hover:bg-cobalt/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+          >
+            NEXT
+          </button>
+        </div>
+      )}
 
       <ConfirmationModal
         isOpen={confirmModal.isOpen}

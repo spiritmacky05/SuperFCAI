@@ -32,13 +32,22 @@ const AccountView: React.FC<AccountViewProps> = ({ user }) => {
   const [proofOfPayment, setProofOfPayment] = useState<File | null>(null);
   const [isUploadingProof, setIsUploadingProof] = useState(false);
   const [deferredInstallPrompt, setDeferredInstallPrompt] = useState<any>(null);
-  const [canInstall, setCanInstall] = useState(false);
+  const [downloadStrategy, setDownloadStrategy] = useState<'prompt' | 'ios' | 'firefox' | null>(null);
   const { showToast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    const handler = (e: any) => { e.preventDefault(); setDeferredInstallPrompt(e); setCanInstall(true); };
-    const installed = () => setCanInstall(false);
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (navigator as any).standalone;
+    if (!isStandalone) {
+      if (/iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream) {
+        setDownloadStrategy('ios');
+      } else if (/Android.*Firefox/.test(navigator.userAgent)) {
+        setDownloadStrategy('firefox');
+      }
+    }
+
+    const handler = (e: any) => { e.preventDefault(); setDeferredInstallPrompt(e); setDownloadStrategy('prompt'); };
+    const installed = () => setDownloadStrategy(null);
     window.addEventListener('beforeinstallprompt', handler);
     window.addEventListener('appinstalled', installed);
     return () => { window.removeEventListener('beforeinstallprompt', handler); window.removeEventListener('appinstalled', installed); };
@@ -48,7 +57,7 @@ const AccountView: React.FC<AccountViewProps> = ({ user }) => {
     if (!deferredInstallPrompt) return;
     deferredInstallPrompt.prompt();
     const { outcome } = await deferredInstallPrompt.userChoice;
-    if (outcome === 'accepted') { showToast('App installed successfully!', 'success'); setCanInstall(false); }
+    if (outcome === 'accepted') { showToast('App installed successfully!', 'success'); setDownloadStrategy(null); }
     setDeferredInstallPrompt(null);
   };
 
@@ -302,7 +311,7 @@ Thank you for supporting Super FC AI!
         </div>
 
         {/* Download PWA */}
-        {canInstall && (
+        {downloadStrategy && (
           <div className="md:col-span-2 glass-panel p-5 sm:p-6 rounded-xl border border-cobalt/30 relative overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-r from-cobalt/5 to-transparent pointer-events-none" />
             <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -311,15 +320,23 @@ Thank you for supporting Super FC AI!
                   <Download className="text-cobalt" size={20} />
                   DOWNLOAD APP
                 </h3>
-                <p className="text-sm text-muted font-mono">Install Super FC AI on your device for faster access and offline use.</p>
+                {downloadStrategy === 'ios' ? (
+                  <p className="text-sm text-muted font-mono">Tap the <strong>Share</strong> button and select <strong>Add to Home Screen</strong>.</p>
+                ) : downloadStrategy === 'firefox' ? (
+                  <p className="text-sm text-muted font-mono">Tap the browser's <strong>3 dots menu (⋮)</strong> and select <strong>Install</strong> to add this app.</p>
+                ) : (
+                  <p className="text-sm text-muted font-mono">Install Super FC AI on your device for faster access and offline use.</p>
+                )}
               </div>
-              <button
-                onClick={handleInstallPWA}
-                className="flex-shrink-0 cyber-button-primary w-full sm:w-auto px-6 py-3 rounded-lg flex items-center justify-center gap-2 text-obsidian font-bold text-sm shadow-[0_0_15px_rgba(0,242,255,0.3)] hover:scale-105 transition-transform"
-              >
-                <Download size={18} />
-                INSTALL APP
-              </button>
+              {downloadStrategy === 'prompt' && (
+                <button
+                  onClick={handleInstallPWA}
+                  className="flex-shrink-0 cyber-button-primary w-full sm:w-auto px-6 py-3 rounded-lg flex items-center justify-center gap-2 text-obsidian font-bold text-sm shadow-[0_0_15px_rgba(0,242,255,0.3)] hover:scale-105 transition-transform"
+                >
+                  <Download size={18} />
+                  INSTALL APP
+                </button>
+              )}
             </div>
           </div>
         )}
