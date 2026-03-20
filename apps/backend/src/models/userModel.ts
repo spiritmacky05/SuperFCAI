@@ -7,6 +7,46 @@ export class UserModel {
     return this.db.query('SELECT * FROM users');
   }
 
+  async getPaginatedUsers(page: number, limit: number, search: string, roleFilter: string, statusFilter: string) {
+    const offset = (page - 1) * limit;
+    let query = 'SELECT email, name, role, bfp_id_url, status, bfp_account_number, proof_of_payment_url as proofOfPaymentUrl, payment_status as paymentStatus, subscription_expiry, last_payment_date FROM users WHERE 1=1';
+    const params: any[] = [];
+
+    if (search) {
+      query += ' AND (name LIKE ? OR email LIKE ?)';
+      params.push(`%${search}%`, `%${search}%`);
+    }
+    if (roleFilter && roleFilter !== 'all') {
+      query += ' AND role = ?';
+      params.push(roleFilter);
+    }
+    if (statusFilter && statusFilter !== 'all') {
+      query += ' AND status = ?';
+      params.push(statusFilter);
+    }
+
+    const countQuery = query.replace('SELECT email, name, role, bfp_id_url, status, bfp_account_number, proof_of_payment_url as proofOfPaymentUrl, payment_status as paymentStatus, subscription_expiry, last_payment_date', 'SELECT COUNT(*) as total');
+    const countResult = await this.db.query(countQuery, params);
+    const total = countResult[0].total;
+
+    query += ' ORDER BY email ASC LIMIT ? OFFSET ?';
+    params.push(limit, offset);
+
+    const data = await this.db.query(query, params);
+    return { data, total };
+  }
+
+  async getUserStats() {
+    const result = await this.db.query(`
+      SELECT 
+        COUNT(*) as total,
+        SUM(CASE WHEN role = 'free' THEN 1 ELSE 0 END) as freeCount,
+        SUM(CASE WHEN role = 'pro' THEN 1 ELSE 0 END) as proCount
+      FROM users
+    `);
+    return result[0];
+  }
+
   getByCredentials(email: string, password: string) {
     return this.db.query('SELECT * FROM users WHERE email = LOWER(TRIM(?)) AND password = ?', [email, password]);
   }

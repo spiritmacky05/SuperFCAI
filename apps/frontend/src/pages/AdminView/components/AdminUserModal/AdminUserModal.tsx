@@ -89,7 +89,7 @@ const AdminUserModal: React.FC<AdminUserModalProps> = ({
               <label className="text-muted text-xs uppercase tracking-wider block mb-1">Status</label>
               <select 
                 value={editedUser.status || 'approved'}
-                onChange={(e) => setEditedUser({...editedUser, status: e.target.value})}
+                onChange={(e) => setEditedUser({...editedUser, status: e.target.value as any})}
                 className="w-full px-3 py-2 rounded-lg glass-input font-mono text-sm focus:ring-1 focus:ring-cobalt/50"
               >
                 <option value="approved" className="bg-obsidian">APPROVED</option>

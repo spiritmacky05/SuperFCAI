@@ -21,7 +21,7 @@ interface AdminViewProps {
 const AdminView: React.FC<AdminViewProps> = ({ currentUser }) => {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'training' | 'users' | 'reports'>('dashboard');
   const [knowledgeEntries, setKnowledgeEntries] = useState<KnowledgeEntry[]>([]);
-  const [users, setUsers] = useState<User[]>([]);
+  const [userStats, setUserStats] = useState({ total: 0, freeCount: 0, proCount: 0 });
   const [errorReports, setErrorReports] = useState<ErrorReport[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -30,17 +30,21 @@ const AdminView: React.FC<AdminViewProps> = ({ currentUser }) => {
   const [zoomedImage, setZoomedImage] = useState<string | null>(null);
   const [verifyingUser, setVerifyingUser] = useState<User | null>(null);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+
+  // Pagination State
+  const [userPage, setUserPage] = useState(1);
+  const [userSearch, setUserSearch] = useState('');
+  const [userRoleFilter, setUserRoleFilter] = useState('all');
+  const [userStatusFilter, setUserStatusFilter] = useState('all');
+  const [paginatedUsersData, setPaginatedUsersData] = useState<{ data: User[], total: number }>({ data: [], total: 0 });
+
   const { showToast, confirm } = useToast();
 
-  // Mock Data for Dashboard
   const stats = {
     lowWeeklyLimits: 14,
     expiredSubscriptions: 5,
     totalIncome: 45000,
   };
-
-  const freeUsersCount = users.filter(u => u.role === 'free').length;
-  const proUsersCount = users.filter(u => u.role === 'pro').length;
 
   const handleExportStats = () => {
     showToast('Exporting statistics to CSV...', 'info');
@@ -51,15 +55,15 @@ const AdminView: React.FC<AdminViewProps> = ({ currentUser }) => {
 
   const fetchData = async () => {
     try {
-      if (users.length === 0) setIsLoading(true);
-      const [knowledge, fetchedUsers, reports] = await Promise.all([
+      if (knowledgeEntries.length === 0) setIsLoading(true);
+      const [knowledge, statsData, reports] = await Promise.all([
         storageService.getKnowledge(),
-        storageService.getUsers(),
+        storageService.getUserStats(),
         storageService.getErrorReports()
       ]);
 
       setKnowledgeEntries(knowledge);
-      setUsers(fetchedUsers.sort((a, b) => (a.name > b.name ? 1 : -1)));
+      setUserStats(statsData);
       
       if (errorReports.length > 0 && reports.length > errorReports.length) {
         showToast('New AI Error Report received!', 'info');
@@ -77,6 +81,21 @@ const AdminView: React.FC<AdminViewProps> = ({ currentUser }) => {
     const interval = setInterval(fetchData, 30000);
     return () => clearInterval(interval);
   }, [errorReports.length]);
+
+  const fetchPaginatedUsers = async () => {
+    try {
+      const res = await storageService.getPaginatedUsers(userPage, 10, userSearch, userRoleFilter, userStatusFilter);
+      setPaginatedUsersData(res);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'users') {
+      fetchPaginatedUsers();
+    }
+  }, [userPage, userSearch, userRoleFilter, userStatusFilter, activeTab]);
 
   const handleOpenPaymentModal = (user: User) => {
     setVerifyingUser(user);
@@ -96,6 +115,7 @@ const AdminView: React.FC<AdminViewProps> = ({ currentUser }) => {
     setIsPaymentModalOpen(false);
     setVerifyingUser(null);
     fetchData();
+    fetchPaginatedUsers();
   };
 
   const handleDisapprovePayment = async () => {
@@ -136,19 +156,17 @@ const AdminView: React.FC<AdminViewProps> = ({ currentUser }) => {
   };
 
   const handleUpdateRole = async (email: string, newRole: UserRole) => {
-    const user = users.find(u => u.email === email);
-    if (user) {
-      const updatedUser: User = { ...user, role: newRole, status: 'approved' };
-      await storageService.saveUser(updatedUser);
-      setUsers(await storageService.getUsers());
-      setEditingUser(null);
-      showToast(`User role updated and approved successfully.`, 'success');
-    }
+    const updatedUser = { email, role: newRole, status: 'approved' } as User;
+    await storageService.saveUser(updatedUser);
+    setUserStats(await storageService.getUserStats());
+    fetchPaginatedUsers();
+    setEditingUser(null);
+    showToast(`User role updated and approved successfully.`, 'success');
   };
 
   const handleSaveUserProfile = async (user: User) => {
     await storageService.saveUser(user);
-    setUsers(await storageService.getUsers());
+    fetchPaginatedUsers();
     setSelectedUser(user);
     showToast(`User profile updated successfully.`, 'success');
   };
@@ -215,34 +233,28 @@ const AdminView: React.FC<AdminViewProps> = ({ currentUser }) => {
   const handleDeleteUser = async (email: string) => {
     if (await confirm('Are you sure you want to delete this user?')) {
       await storageService.deleteUser(email);
-      setUsers(await storageService.getUsers());
+      setUserStats(await storageService.getUserStats());
+      fetchPaginatedUsers();
       setEditingUser(null);
       showToast('User deleted successfully.', 'info');
     }
   };
 
   const handleApproveUser = async (email: string) => {
-    const user = users.find(u => u.email === email);
-    if (user) {
-      const updatedUser: User = { ...user, status: 'approved' };
-      await storageService.saveUser(updatedUser);
-      setUsers(await storageService.getUsers());
-      setSelectedUser(updatedUser);
-      showToast(`User approved successfully.`, 'success');
-    }
+    const updatedUser = { email, status: 'approved' } as User;
+    await storageService.saveUser(updatedUser);
+    setUserStats(await storageService.getUserStats());
+    fetchPaginatedUsers();
+    setSelectedUser(updatedUser);
+    showToast(`User approved successfully.`, 'success');
   };
 
   const handleToggleUserStatus = async (email: string, nextStatus?: 'approved' | 'rejected') => {
-    const user = users.find(u => u.email === email);
-    if (!user) return;
-    
-    // If no explicit status provided, do a default toggle
-    const targetStatus = nextStatus || 
-      ((user.status || 'approved') === 'pending' || (user.status || 'approved') === 'rejected' ? 'approved' : 'pending');
-    
-    const updatedUser: User = { ...user, status: targetStatus };
+    const targetStatus = nextStatus || 'approved'; // Fallback if no specific state
+    const updatedUser = { email, status: targetStatus } as User;
     await storageService.saveUser(updatedUser);
-    setUsers(await storageService.getUsers());
+    setUserStats(await storageService.getUserStats());
+    fetchPaginatedUsers();
     if (selectedUser?.email === email) setSelectedUser(updatedUser);
     showToast(`User status updated to ${targetStatus.toUpperCase()}.`, 'success');
   };
@@ -253,7 +265,7 @@ const AdminView: React.FC<AdminViewProps> = ({ currentUser }) => {
     }
   };
 
-  const actualCurrentUser = users.find(u => u.email === currentUser?.email) || currentUser;
+  const actualCurrentUser = currentUser;
 
   if (isLoading) {
     return (
@@ -310,9 +322,9 @@ const AdminView: React.FC<AdminViewProps> = ({ currentUser }) => {
         <div className="p-4 md:p-6">
           {activeTab === 'dashboard' && (
             <AdminDashboard 
-              users={users} 
-              freeUsersCount={freeUsersCount} 
-              proUsersCount={proUsersCount} 
+              totalUsers={userStats.total} 
+              freeUsersCount={userStats.freeCount} 
+              proUsersCount={userStats.proCount} 
               stats={stats} 
               onExportStats={handleExportStats} 
             />
@@ -328,7 +340,16 @@ const AdminView: React.FC<AdminViewProps> = ({ currentUser }) => {
           )}
           {activeTab === 'users' && (
             <AdminUserManagement 
-              users={users} 
+              users={paginatedUsersData.data} 
+              totalUsers={paginatedUsersData.total}
+              currentPage={userPage}
+              searchQuery={userSearch}
+              roleFilter={userRoleFilter}
+              statusFilter={userStatusFilter}
+              onPageChange={setUserPage}
+              onSearchChange={setUserSearch}
+              onRoleFilterChange={setUserRoleFilter}
+              onStatusFilterChange={setUserStatusFilter}
               editingUser={editingUser} 
               setEditingUser={setEditingUser} 
               onUpdateRole={handleUpdateRole} 

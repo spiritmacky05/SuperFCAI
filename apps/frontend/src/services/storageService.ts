@@ -17,6 +17,39 @@ export const storageService = {
     }
   },
 
+  getPaginatedUsers: async (page: number, limit: number, search: string, role: string, status: string): Promise<{ data: User[], total: number }> => {
+    try {
+      const query = new URLSearchParams({
+        page: page.toString(),
+        limit: limit.toString(),
+        search,
+        role,
+        status
+      }).toString();
+      const response = await fetch(`${API_BASE}/users/paginated?${query}`, {
+        headers: storageService.getAuthHeaders()
+      });
+      if (!response.ok) throw new Error('Failed to fetch paginated users');
+      return await response.json();
+    } catch (e) {
+      console.error('getPaginatedUsers error:', e);
+      return { data: [], total: 0 };
+    }
+  },
+
+  getUserStats: async (): Promise<{ total: number, freeCount: number, proCount: number }> => {
+    try {
+      const response = await fetch(`${API_BASE}/users/stats`, {
+        headers: storageService.getAuthHeaders()
+      });
+      if (!response.ok) throw new Error('Failed to fetch user stats');
+      return await response.json();
+    } catch (e) {
+      console.error('getUserStats error:', e);
+      return { total: 0, freeCount: 0, proCount: 0 };
+    }
+  },
+
   // Helper to get current user from local storage
   getUser: (): User | null => {
     const userJson = localStorage.getItem('user');

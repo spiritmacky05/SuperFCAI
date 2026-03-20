@@ -17,6 +17,14 @@ export class UserService {
     });
   }
 
+  async getPaginatedUsers(page: number, limit: number, search: string, roleFilter: string, statusFilter: string) {
+    return this.users.getPaginatedUsers(page, limit, search, roleFilter, statusFilter);
+  }
+
+  async getUserStats() {
+    return this.users.getUserStats();
+  }
+
   async upsertUser(body: any) {
     const payload = { ...body };
     if (payload.email) {

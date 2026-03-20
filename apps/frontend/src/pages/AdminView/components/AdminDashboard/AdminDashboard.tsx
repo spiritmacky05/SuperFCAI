@@ -3,7 +3,7 @@ import { Users, User as UserIcon, Shield, AlertTriangle, UserMinus, DollarSign, 
 import { User } from '../../../../types';
 
 interface AdminDashboardProps {
-  users: User[];
+  totalUsers: number;
   freeUsersCount: number;
   proUsersCount: number;
   stats: {
@@ -15,7 +15,7 @@ interface AdminDashboardProps {
 }
 
 const AdminDashboard: React.FC<AdminDashboardProps> = ({ 
-  users, 
+  totalUsers, 
   freeUsersCount, 
   proUsersCount, 
   stats, 
@@ -40,7 +40,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
             <Users className="w-4 h-4 text-cobalt" />
             <span className="text-[10px] uppercase font-mono tracking-wider">Total Users</span>
           </div>
-          <div className="text-2xl font-display text-white">{users.length}</div>
+          <div className="text-2xl font-display text-white">{totalUsers}</div>
         </div>
         <div className="glass-panel p-4 rounded-lg border border-glass flex flex-col justify-between">
           <div className="flex items-center gap-2 text-muted mb-2">

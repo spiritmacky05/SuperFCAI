@@ -36,6 +36,8 @@ export const createApiRouter = (container: AppContainer) => {
   router.get('/diag/db-health', container.controllers['diag'].getDbHealth);
 
   router.get('/users', user.list);
+  router.get('/users/paginated', user.listPaginated);
+  router.get('/users/stats', user.stats);
   router.post('/users', user.upsert);
   router.get('/users/:email', user.loginStatus);
   router.get('/me', user.me);

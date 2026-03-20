@@ -13,6 +13,30 @@ export class UserController {
     }
   };
 
+  listPaginated = async (req: Request, res: Response) => {
+    try {
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 10;
+      const search = (req.query.search as string) || '';
+      const roleFilter = (req.query.role as string) || 'all';
+      const statusFilter = (req.query.status as string) || 'all';
+      
+      const result = await this.userService.getPaginatedUsers(page, limit, search, roleFilter, statusFilter);
+      res.json(result);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  };
+
+  stats = async (req: Request, res: Response) => {
+    try {
+      const stats = await this.userService.getUserStats();
+      res.json(stats);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  };
+
   upsert = async (req: Request, res: Response) => {
     try {
       await this.userService.upsertUser(req.body);

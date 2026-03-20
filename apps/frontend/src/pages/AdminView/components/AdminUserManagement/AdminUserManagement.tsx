@@ -5,6 +5,15 @@ import { User, UserRole } from '../../../../types';
 
 interface AdminUserManagementProps {
   users: User[];
+  totalUsers: number;
+  currentPage: number;
+  searchQuery: string;
+  roleFilter: string;
+  statusFilter: string;
+  onPageChange: (page: number) => void;
+  onSearchChange: (search: string) => void;
+  onRoleFilterChange: (role: string) => void;
+  onStatusFilterChange: (status: string) => void;
   editingUser: string | null;
   setEditingUser: (email: string | null) => void;
   onUpdateRole: (email: string, newRole: UserRole) => Promise<void>;
@@ -16,6 +25,15 @@ interface AdminUserManagementProps {
 
 const AdminUserManagement: React.FC<AdminUserManagementProps> = ({
   users,
+  totalUsers,
+  currentPage,
+  searchQuery,
+  roleFilter,
+  statusFilter,
+  onPageChange,
+  onSearchChange,
+  onRoleFilterChange,
+  onStatusFilterChange,
   editingUser,
   setEditingUser,
   onUpdateRole,
@@ -24,9 +42,7 @@ const AdminUserManagement: React.FC<AdminUserManagementProps> = ({
   onSelectUser,
   onDeleteUser
 }) => {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [roleFilter, setRoleFilter] = useState<string>('all');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+
   const [confirmModal, setConfirmModal] = useState<{
     isOpen: boolean;
     title: string;
@@ -86,32 +102,8 @@ const AdminUserManagement: React.FC<AdminUserManagementProps> = ({
     });
   };
 
-  const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
-
-  const filteredUsers = useMemo(() => {
-    return users.filter(user => {
-      const matchesSearch = 
-        user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        user.email.toLowerCase().includes(searchQuery.toLowerCase());
-      
-      const matchesRole = roleFilter === 'all' || user.role === roleFilter;
-      const matchesStatus = statusFilter === 'all' || (user.status || 'approved') === statusFilter;
-
-      return matchesSearch && matchesRole && matchesStatus;
-    });
-  }, [users, searchQuery, roleFilter, statusFilter]);
-
-  // Reset to page 1 when filters change
-  React.useEffect(() => {
-    setCurrentPage(1);
-  }, [searchQuery, roleFilter, statusFilter]);
-
-  const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
-  const paginatedUsers = useMemo(() => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    return filteredUsers.slice(startIndex, startIndex + itemsPerPage);
-  }, [filteredUsers, currentPage]);
+  const totalPages = Math.ceil(totalUsers / itemsPerPage);
 
   return (
     <div className="space-y-4">
@@ -123,7 +115,7 @@ const AdminUserManagement: React.FC<AdminUserManagementProps> = ({
             type="text"
             placeholder="Search by name or email..."
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => { onSearchChange(e.target.value); onPageChange(1); }}
             className="w-full bg-obsidian/50 border border-glass rounded-lg pl-10 pr-4 py-2 text-sm font-mono text-white focus:border-cobalt outline-none transition-colors"
           />
         </div>
@@ -133,7 +125,7 @@ const AdminUserManagement: React.FC<AdminUserManagementProps> = ({
             <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-3 h-3 text-muted" />
             <select
               value={roleFilter}
-              onChange={(e) => setRoleFilter(e.target.value)}
+              onChange={(e) => { onRoleFilterChange(e.target.value); onPageChange(1); }}
               className="w-full bg-obsidian/50 border border-glass rounded-lg pl-8 pr-2 py-2 text-xs font-mono text-white focus:border-cobalt outline-none appearance-none"
             >
               <option value="all">ALL ROLES</option>
@@ -148,7 +140,7 @@ const AdminUserManagement: React.FC<AdminUserManagementProps> = ({
             <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-3 h-3 text-muted" />
             <select
               value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
+              onChange={(e) => { onStatusFilterChange(e.target.value); onPageChange(1); }}
               className="w-full bg-obsidian/50 border border-glass rounded-lg pl-8 pr-2 py-2 text-xs font-mono text-white focus:border-cobalt outline-none appearance-none"
             >
               <option value="all">ALL STATUS</option>
@@ -160,7 +152,7 @@ const AdminUserManagement: React.FC<AdminUserManagementProps> = ({
         </div>
         
         <div className="text-[10px] font-mono text-muted uppercase tracking-widest whitespace-nowrap">
-          Showing {filteredUsers.length} of {users.length}
+          Showing {users.length} of {totalUsers}
         </div>
       </div>
 
@@ -179,7 +171,7 @@ const AdminUserManagement: React.FC<AdminUserManagementProps> = ({
               </tr>
             </thead>
             <tbody className="divide-y divide-glass">
-              {paginatedUsers.map((user) => (
+              {users.map((user) => (
                 <tr key={user.email} className="hover:bg-white/5 transition-colors">
                   <td className="p-4 text-silver font-mono text-sm">
                     <button 
@@ -281,7 +273,7 @@ const AdminUserManagement: React.FC<AdminUserManagementProps> = ({
                   </td>
                 </tr>
               ))}
-              {filteredUsers.length === 0 && (
+              {users.length === 0 && (
                 <tr>
                   <td colSpan={6} className="p-12 text-center text-muted font-mono text-xs uppercase tracking-widest">
                     No agents matched your current filters.
@@ -294,7 +286,7 @@ const AdminUserManagement: React.FC<AdminUserManagementProps> = ({
 
         {/* Mobile View */}
         <div className="md:hidden divide-y divide-glass">
-          {paginatedUsers.map((user) => (
+          {users.map((user) => (
             <div key={user.email} className="p-4 space-y-3 hover:bg-white/5 transition-colors">
               <div className="flex justify-between items-start">
                 <div>
@@ -406,7 +398,7 @@ const AdminUserManagement: React.FC<AdminUserManagementProps> = ({
               </div>
             </div>
           ))}
-          {filteredUsers.length === 0 && (
+          {users.length === 0 && (
             <div className="p-8 text-center text-muted font-mono text-xs uppercase tracking-widest">
               No agents found matching criteria.
             </div>
@@ -417,7 +409,7 @@ const AdminUserManagement: React.FC<AdminUserManagementProps> = ({
       {totalPages >= 1 && (
         <div className="flex items-center justify-between glass-panel p-4 rounded-xl border border-glass mt-4">
           <button
-            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+            onClick={() => onPageChange(Math.max(1, currentPage - 1))}
             disabled={currentPage === 1}
             className="px-4 py-2 text-xs font-mono font-bold text-cobalt bg-cobalt/10 border border-cobalt/30 rounded-lg hover:bg-cobalt/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
           >
@@ -432,7 +424,7 @@ const AdminUserManagement: React.FC<AdminUserManagementProps> = ({
           </div>
 
           <button
-            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+            onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
             disabled={currentPage === totalPages}
             className="px-4 py-2 text-xs font-mono font-bold text-cobalt bg-cobalt/10 border border-cobalt/30 rounded-lg hover:bg-cobalt/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
           >
