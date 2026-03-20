@@ -20,9 +20,10 @@ interface MainViewProps {
   user: User;
   reportGen: ReportGenProps;
   setIsAssistantOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  setView: (view: 'main' | 'history' | 'admin' | 'account') => void;
 }
 
-export const MainView: React.FC<MainViewProps> = ({ user, reportGen, setIsAssistantOpen }) => {
+export const MainView: React.FC<MainViewProps> = ({ user, reportGen, setIsAssistantOpen, setView }) => {
   const { params, setParams, result, isLoading, error, generateReport } = reportGen;
 
   const ui = {
@@ -75,9 +76,19 @@ export const MainView: React.FC<MainViewProps> = ({ user, reportGen, setIsAssist
         <div className={ui.rightColumn}>
           {error && (
             <div className="bg-red-900/20 border-l-2 border-red-500 p-4 rounded-r-lg backdrop-blur-sm">
-              <div className="flex items-center">
-                <svg className="w-6 h-6 text-red-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                <p className="text-sm text-red-400 font-mono">{error}</p>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex items-center">
+                  <svg className="w-6 h-6 text-red-500 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                  <p className="text-sm text-red-400 font-mono">{error}</p>
+                </div>
+                {error.toLowerCase().includes('limit reached') && (
+                  <button 
+                    onClick={() => setView('account')}
+                    className="flex-shrink-0 text-xs font-bold uppercase tracking-wider px-4 py-2 bg-cobalt/10 border border-cobalt/30 text-cobalt rounded hover:bg-cobalt/20 transition-all text-center"
+                  >
+                    Want to be Pro? Consider donating click here
+                  </button>
+                )}
               </div>
             </div>
           )}

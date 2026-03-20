@@ -217,6 +217,7 @@ const App: React.FC = () => {
             user={user} 
             reportGen={reportGen} 
             setIsAssistantOpen={setIsAssistantOpen} 
+            setView={setView}
           />
         )}
       </main>

@@ -217,7 +217,7 @@ Thank you for supporting Super FC AI!
           <div className="mt-6 w-full bg-glass h-2 rounded-full overflow-hidden">
             <div 
               className="bg-tangerine h-full rounded-full" 
-              style={{ width: `${Math.min((usageCount / (user.role === 'pro' ? 1000 : 10)) * 100, 100)}%` }}
+              style={{ width: `${Math.min((usageCount / (user.role === 'pro' ? 1000 : 100)) * 100, 100)}%` }}
             ></div>
           </div>
           <p className="text-[10px] text-right text-muted mt-1 font-mono uppercase tracking-widest">
@@ -235,7 +235,7 @@ Thank you for supporting Super FC AI!
                 return `${diffDays} DAYS LEFT TILL NEXT PAYMENT`;
               })()
             ) : (
-              'Weekly Limit: 10 (Free Tier)'
+              'Weekly Limit: 100 (Free Tier)'
             )}
           </p>
         </div>
@@ -317,7 +317,7 @@ Thank you for supporting Super FC AI!
                     className={ui.upgradeButton}
                   >
                     <CreditCard size={20} />
-                    PAY PHP 99.00
+                    DONATE 99 TO BE PRO
                   </button>
                   <p className="text-[10px] text-center text-muted mt-3 font-mono uppercase tracking-widest">Secure Checkout (New Tab)</p>
 

@@ -22,7 +22,7 @@ export class AiController {
         const user = users.find(u => u.email === email);
         if (user && user.role === 'free') {
           const usage = await this.reportService.getWeeklyUsage(email);
-          if (usage >= 10) { // Example limit: 10 per week
+          if (usage >= 100) { // Example limit: 100 per week
             return res.status(403).json({ error: 'Weekly limit reached for Free tier. Please upgrade to Pro for unlimited access.' });
           }
         }
@@ -59,7 +59,7 @@ export class AiController {
         const user = users.find(u => u.email === email);
         if (user && user.role === 'free') {
           const usage = await this.reportService.getWeeklyUsage(email);
-          if (usage >= 10) {
+          if (usage >= 100) {
             return res.status(403).json({ error: 'Weekly limit reached for Free tier. Please upgrade to Pro for unlimited access.' });
           }
         }
