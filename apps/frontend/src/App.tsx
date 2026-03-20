@@ -118,7 +118,7 @@ const App: React.FC = () => {
     mobileDrawerOverlay: 'fixed inset-0 z-50 md:hidden',
     mobileDrawerPanel: 'absolute left-0 top-0 bottom-0 w-[85vw] max-w-xs bg-obsidian border-r border-glass p-5 sm:p-6 flex flex-col animate-slide-in-left',
     mobileNavButtonBase: 'w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all',
-    fab: 'fixed bottom-24 sm:bottom-20 md:bottom-6 right-4 sm:right-6 h-14 w-14 sm:h-16 sm:w-16 bg-cobalt/10 text-cobalt rounded-full shadow-[0_0_30px_rgba(0,242,255,0.3)] hover:bg-cobalt hover:text-obsidian hover:scale-110 active:scale-95 transition-all z-[60] flex items-center justify-center border border-cobalt backdrop-blur-md group',
+    fab: 'fixed bottom-[7rem] sm:bottom-24 md:bottom-6 right-4 sm:right-6 h-14 w-14 sm:h-16 sm:w-16 bg-cobalt/10 text-cobalt rounded-full shadow-[0_0_30px_rgba(0,242,255,0.3)] hover:bg-cobalt hover:text-obsidian hover:scale-110 active:scale-95 transition-all z-[110] flex items-center justify-center border border-cobalt backdrop-blur-md group',
   };
 
   return (

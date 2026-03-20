@@ -113,7 +113,7 @@ const NTCGenerator: React.FC<NTCGeneratorProps> = ({ params, user }) => {
     const violationsContext = defectsList.map((d, i) => `${i + 1}. ${d}`).join('\n');
 
     try {
-      const result = await generateNTC(params, violationsContext, user.email);
+      const result = await generateNTC(params, violationsContext);
       setNtcContent(result);
     } catch (err: any) {
       console.error("NTC Gen Error:", err);
@@ -210,7 +210,7 @@ const NTCGenerator: React.FC<NTCGeneratorProps> = ({ params, user }) => {
             <h4 className="text-sm font-display text-white mb-4 flex items-center gap-2 uppercase tracking-wide">
               <span className="text-red-500">⚠</span> Defects, Legal Basis & Explanation
             </h4>
-            <div className="glass-panel p-6 rounded-lg border border-glass font-mono text-sm text-silver leading-relaxed shadow-inner bg-obsidian/30">
+            <div className="glass-panel p-3 sm:p-6 rounded-lg border border-glass font-mono text-xs sm:text-sm text-silver leading-loose sm:leading-relaxed shadow-inner bg-obsidian/30">
               <ReactMarkdown 
                 components={{
                   h3: ({node, ...props}) => <h3 className="text-red-400 font-bold mt-4 mb-2 uppercase tracking-wider text-xs" {...props} />,

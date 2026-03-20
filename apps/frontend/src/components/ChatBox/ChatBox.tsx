@@ -61,7 +61,7 @@ const ChatBox: React.FC<ChatBoxProps> = ({ reportContext, user }) => {
         Answer the user's question based on the report content and the Fire Code. Be concise, professional, and cite specific provisions if applicable.
       `;
 
-      const response = await generateContent(prompt, user.email);
+      const response = await generateContent(prompt);
       
       const botMessage: Message = {
         role: 'model',
@@ -91,7 +91,7 @@ const ChatBox: React.FC<ChatBoxProps> = ({ reportContext, user }) => {
   };
 
   return (
-    <div className="glass-panel rounded-xl overflow-hidden border border-glass shadow-2xl flex flex-col h-[600px]">
+    <div className="glass-panel rounded-xl overflow-hidden border border-glass shadow-2xl flex flex-col h-[70svh] min-h-[380px] max-h-[600px]">
       <div className="bg-glass border-b border-glass p-4 flex items-center justify-between relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-r from-cobalt/5 to-transparent opacity-50"></div>
         <div className="flex items-center gap-3 relative z-10">

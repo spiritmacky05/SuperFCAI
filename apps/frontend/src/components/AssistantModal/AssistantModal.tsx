@@ -49,18 +49,18 @@ const AssistantModal: React.FC<AssistantModalProps> = ({ isOpen, onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-obsidian/80 backdrop-blur-md animate-fade-in">
-      <div className="glass-panel w-full max-w-4xl h-[85vh] rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.5)] overflow-hidden flex flex-col border border-glass">
+    <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center sm:p-6 bg-obsidian/80 backdrop-blur-md animate-fade-in">
+      <div className="glass-panel w-full max-w-4xl h-[92svh] sm:h-[85vh] rounded-t-2xl sm:rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.5)] overflow-hidden flex flex-col border border-glass">
         {/* Header */}
         <div className="bg-glass/50 border-b border-glass p-4 flex items-center justify-between relative overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-r from-cobalt/10 to-transparent opacity-50"></div>
-          <div className="flex items-center gap-4 relative z-10">
+          <div className="flex items-center gap-3 relative z-10 min-w-0">
             <Logo size="md" />
-            <div>
-              <h3 className="font-display text-lg text-white tracking-widest uppercase">Super FC AI Expert Mode</h3>
+            <div className="min-w-0">
+              <h3 className="font-display text-sm sm:text-lg text-white tracking-widest uppercase">Super FC AI Expert Mode</h3>
               <div className="flex items-center gap-2">
-                <Sparkles className="w-3 h-3 text-tangerine" />
-                <p className="text-xs font-mono text-silver/70 tracking-wider">DEEP NEURAL NETWORK • RA 9514 KNOWLEDGE BASE</p>
+                <Sparkles className="w-3 h-3 text-tangerine flex-shrink-0" />
+                <p className="text-[10px] sm:text-xs font-mono text-silver/70 tracking-wider truncate">DEEP NEURAL NETWORK • RA 9514</p>
               </div>
             </div>
           </div>
@@ -73,7 +73,7 @@ const AssistantModal: React.FC<AssistantModalProps> = ({ isOpen, onClose }) => {
         </div>
 
         {/* Chat Area */}
-        <div className="flex-grow overflow-y-auto p-6 space-y-6 scrollbar-thin scrollbar-thumb-glass scrollbar-track-transparent bg-obsidian/50">
+        <div className="flex-grow overflow-y-auto p-3 sm:p-6 space-y-4 sm:space-y-6 scrollbar-thin scrollbar-thumb-glass scrollbar-track-transparent bg-obsidian/50">
           {messages.map((msg, idx) => (
             <div key={idx} className={`flex gap-4 ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
               <div className={`flex-shrink-0 h-8 w-8 rounded-lg flex items-center justify-center border ${
@@ -125,21 +125,21 @@ const AssistantModal: React.FC<AssistantModalProps> = ({ isOpen, onClose }) => {
         </div>
 
         {/* Input Area */}
-        <div className="p-6 bg-glass border-t border-glass">
-          <div className="flex gap-3 relative">
+        <div className="p-3 sm:p-6 bg-glass border-t border-glass">
+          <div className="flex gap-2 sm:gap-3 relative">
             <input
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), handleSend())}
-              placeholder="Ask anything about RA 9514 (e.g., 'What are the travel distance limits for schools?')"
-              className="flex-grow px-5 py-4 glass-input rounded-xl focus:ring-1 focus:ring-cobalt/50 font-mono text-sm text-white placeholder-muted transition-all"
+              placeholder="Ask about RA 9514..."
+              className="flex-1 min-w-0 px-3 sm:px-5 py-3 sm:py-4 glass-input rounded-xl focus:ring-1 focus:ring-cobalt/50 font-mono text-sm text-white placeholder-muted transition-all"
               disabled={isTyping}
             />
             <button
               onClick={handleSend}
               disabled={isTyping || !input.trim()}
-              className="bg-cobalt/10 text-cobalt border border-cobalt/30 px-6 py-3 rounded-xl hover:bg-cobalt/20 hover:shadow-[0_0_15px_rgba(0,242,255,0.2)] disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95 flex items-center justify-center"
+              className="flex-shrink-0 bg-cobalt/10 text-cobalt border border-cobalt/30 p-3 sm:px-6 sm:py-3 rounded-xl hover:bg-cobalt/20 hover:shadow-[0_0_15px_rgba(0,242,255,0.2)] disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95 flex items-center justify-center"
             >
               <Send className="w-5 h-5" />
             </button>

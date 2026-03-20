@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { User } from '../../types';
 import { storageService } from '../../services/storageService';
-import { Shield, Zap, BarChart, Settings as SettingsIcon, CreditCard, Check, AlertTriangle, Send, Upload } from 'lucide-react';
+import { Shield, Zap, BarChart, Settings as SettingsIcon, CreditCard, Check, AlertTriangle, Send, Upload, Download } from 'lucide-react';
 import { useToast } from '../../components/ToastContext';
 
 interface AccountViewProps {
@@ -31,8 +31,26 @@ const AccountView: React.FC<AccountViewProps> = ({ user }) => {
   const [isSubmittingReport, setIsSubmittingReport] = useState(false);
   const [proofOfPayment, setProofOfPayment] = useState<File | null>(null);
   const [isUploadingProof, setIsUploadingProof] = useState(false);
+  const [deferredInstallPrompt, setDeferredInstallPrompt] = useState<any>(null);
+  const [canInstall, setCanInstall] = useState(false);
   const { showToast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const handler = (e: any) => { e.preventDefault(); setDeferredInstallPrompt(e); setCanInstall(true); };
+    const installed = () => setCanInstall(false);
+    window.addEventListener('beforeinstallprompt', handler);
+    window.addEventListener('appinstalled', installed);
+    return () => { window.removeEventListener('beforeinstallprompt', handler); window.removeEventListener('appinstalled', installed); };
+  }, []);
+
+  const handleInstallPWA = async () => {
+    if (!deferredInstallPrompt) return;
+    deferredInstallPrompt.prompt();
+    const { outcome } = await deferredInstallPrompt.userChoice;
+    if (outcome === 'accepted') { showToast('App installed successfully!', 'success'); setCanInstall(false); }
+    setDeferredInstallPrompt(null);
+  };
 
   useEffect(() => {
     const fetchUsage = async () => {
@@ -283,6 +301,29 @@ Thank you for supporting Super FC AI!
           </div>
         </div>
 
+        {/* Download PWA */}
+        {canInstall && (
+          <div className="md:col-span-2 glass-panel p-5 sm:p-6 rounded-xl border border-cobalt/30 relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-r from-cobalt/5 to-transparent pointer-events-none" />
+            <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div>
+                <h3 className="text-lg font-display text-white mb-1 flex items-center gap-2">
+                  <Download className="text-cobalt" size={20} />
+                  DOWNLOAD APP
+                </h3>
+                <p className="text-sm text-muted font-mono">Install Super FC AI on your device for faster access and offline use.</p>
+              </div>
+              <button
+                onClick={handleInstallPWA}
+                className="flex-shrink-0 cyber-button-primary w-full sm:w-auto px-6 py-3 rounded-lg flex items-center justify-center gap-2 text-obsidian font-bold text-sm shadow-[0_0_15px_rgba(0,242,255,0.3)] hover:scale-105 transition-transform"
+              >
+                <Download size={18} />
+                INSTALL APP
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Pro Upgrade Gateway */}
         <div className={ui.upgradePanel}>
           <div className="absolute inset-0 bg-gradient-to-r from-cobalt/5 via-transparent to-transparent"></div>
@@ -368,8 +409,8 @@ Thank you for supporting Super FC AI!
             <table className="w-full text-left text-xs font-mono">
               <thead className="text-muted border-b border-glass">
                 <tr>
-                  <th className="py-3 px-2">REFERENCE</th>
-                  <th className="py-3 px-2">DATE</th>
+                  <th className="py-3 px-2 hidden sm:table-cell">REFERENCE</th>
+                  <th className="py-3 px-2 hidden sm:table-cell">DATE</th>
                   <th className="py-3 px-2">AMOUNT</th>
                   <th className="py-3 px-2">STATUS</th>
                   <th className="py-3 px-2 text-right">ACTION</th>
@@ -382,8 +423,8 @@ Thank you for supporting Super FC AI!
                   <tr><td colSpan={5} className="py-8 text-center text-muted">NO PAYMENT RECORDS FOUND.</td></tr>
                 ) : payments.map((p, i) => (
                   <tr key={i} className="hover:bg-white/5 transition-colors">
-                    <td className="py-3 px-2 text-silver">{p.reference_number}</td>
-                    <td className="py-3 px-2 text-muted">{new Date(p.created_at).toLocaleDateString()}</td>
+                    <td className="py-3 px-2 text-silver hidden sm:table-cell">{p.reference_number}</td>
+                    <td className="py-3 px-2 text-muted hidden sm:table-cell">{new Date(p.created_at).toLocaleDateString()}</td>
                     <td className="py-3 px-2 text-white">PHP {p.amount.toFixed(2)}</td>
                     <td className="py-3 px-2">
                       <span className={`px-2 py-0.5 rounded text-[10px] ${
