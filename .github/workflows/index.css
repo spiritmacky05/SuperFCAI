@@ -1,0 +1,119 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  --font-display: "Space Grotesk", sans-serif;
+  
+  --color-obsidian: #0B0E14;
+  --color-glass: #1A1F2B;
+  --color-cobalt: #00F2FF;
+  --color-tangerine: #FF8C00;
+  --color-silver: #E0E6ED;
+  --color-muted: #64748B;
+}
+
+:root {
+  --bg-obsidian: #0B0E14;
+  --bg-glass: rgba(26, 31, 43, 0.6);
+  --border-glass: rgba(255, 255, 255, 0.08);
+  --glow-cobalt: 0 0 20px rgba(0, 242, 255, 0.15);
+  --glow-tangerine: 0 0 20px rgba(255, 140, 0, 0.15);
+}
+
+body {
+  background-color: var(--bg-obsidian);
+  color: var(--color-silver);
+  font-family: var(--font-sans);
+  font-weight: 400;
+  background-image: 
+    radial-gradient(circle at 50% 0%, rgba(0, 242, 255, 0.03) 0%, transparent 50%),
+    radial-gradient(circle at 80% 80%, rgba(255, 140, 0, 0.02) 0%, transparent 40%);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+code, pre, kbd, samp {
+  font-family: var(--font-mono);
+  font-weight: 400;
+}
+
+.glass-panel {
+  background: var(--bg-glass);
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+  border: 1px solid var(--border-glass);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
+}
+
+.glass-input {
+  background: rgba(11, 14, 20, 0.6);
+  border: 1px solid var(--border-glass);
+  color: var(--color-silver);
+  transition: all 0.3s ease;
+}
+
+.glass-input:focus {
+  border-color: var(--color-cobalt);
+  box-shadow: var(--glow-cobalt);
+  outline: none;
+}
+
+.cyber-button {
+  background: rgba(0, 242, 255, 0.1);
+  border: 1px solid rgba(0, 242, 255, 0.3);
+  color: var(--color-cobalt);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.75rem;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.cyber-button:hover {
+  background: rgba(0, 242, 255, 0.2);
+  box-shadow: var(--glow-cobalt);
+  text-shadow: 0 0 8px rgba(0, 242, 255, 0.5);
+}
+
+.cyber-button-primary {
+  background: var(--color-cobalt);
+  color: var(--color-obsidian);
+  border: none;
+  font-weight: bold;
+}
+
+.cyber-button-primary:hover {
+  background: #33f5ff;
+  box-shadow: 0 0 30px rgba(0, 242, 255, 0.4);
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-obsidian);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-glass);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-muted);
+}
